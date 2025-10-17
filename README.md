@@ -29,6 +29,7 @@ cd MedFlowAI
 2. Create a virtual environment (recommended):
 ```bash
 python -m venv venv
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process # If not configured for Windows
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
