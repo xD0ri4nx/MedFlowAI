@@ -1,0 +1,7 @@
+# FastAPI Framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Configuration
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
