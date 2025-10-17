@@ -7,16 +7,20 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Application
-    APP_NAME: str = "MedFlowAI"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    APP_NAME: str
+    ENVIRONMENT: str 
+    DEBUG: bool
 
     # Server
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    HOST: str
+    PORT: int
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    ALLOWED_ORIGINS: List[str]
+
+    # API Keys
+    GROQ_API_KEY: str
+    OPENAI_API_KEY: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
