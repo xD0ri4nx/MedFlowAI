@@ -46,3 +46,15 @@ async def api_status():
         "status": "operational",
         "environment": settings.ENVIRONMENT
     }
+
+
+@app.get("/api/v1/debug")
+async def debug_info():
+    """Debug endpoint - displays environment variables"""
+    return {
+        "project_name": settings.APP_NAME,
+        "debug_mode": settings.DEBUG,
+        "environment": settings.ENVIRONMENT,
+        "host": settings.HOST,
+        "port": settings.PORT
+    }
