@@ -90,16 +90,21 @@ SPORT (activitate fizică):
 
 ---
 
-Oferă o analiză scurtă și concisă cu:
-1. Evaluare generală
-2. Alerte (dacă există probleme)
-3. 2-3 recomandări principale
+Oferă un feedback FOARTE SCURT (maxim 2-3 fraze!) cu:
+- O evaluare generală rapid (1 frază)
+- 2-3 recomandări principale (foarte concise)
 
-Răspunde în limba română, profesional dar accesibil."""
+IMPORTANT: Formatează răspunsul folosind Markdown:
+- Folosește **bold** pentru cuvinte cheie
+- Folosește bullet points (•) pentru recomandări
+- NU folosi titluri de secțiuni
+- Păstrează totul FOARTE SCURT - maximum 3-4 rânduri în total!
+
+Răspunde în limba română, foarte concis."""
 
         system_message = """Ești un asistent medical AI specializat în analiza datelor de sănătate. 
-Analizezi date zilnice și oferi feedback constructiv și recomandări personalizate.
-Răspunzi în limba română, concis in (MAXIMUM 3 PROPOZITII!!!!!!!!!!) și la obiect."""
+Răspunzi în limba română EXTREM DE CONCIS - maximum 2-3 fraze în total.
+Folosește Markdown pentru formatare (bold și bullet points), fără titluri."""
 
         # Get LLM feedback
         feedback = get_llm_response(
