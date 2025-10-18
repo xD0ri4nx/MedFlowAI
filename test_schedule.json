@@ -1,0 +1,51 @@
+{
+  "user_id": "70b8c710-b86e-4307-ab97-fbb95a4c66d9",
+  "question": "De ce ma simt obosit?",
+  "generated_feedback": "Mark, oboseala ta se poate datora mai multor factori: somn insuficient si de foarte slaba calitate, consum caloric scazut si sedentarism. Ai dormit intre 2.5 si 4 ore pe noapte, ceea ce este mult sub necesarul standard. De asemenea, tensiunea arteriala si pulsul sunt ridicate, iar oxigenarea este sub normal. Incearca sa imbunatatesti somnul si sa cresti activitatea fizica. Daca starea persista, consulta un medic specialist pentru a exclude probleme medicale.",
+  "summary": {
+    "user_id": "70b8c710-b86e-4307-ab97-fbb95a4c66d9",
+    "profile": {
+      "id": "70b8c710-b86e-4307-ab97-fbb95a4c66d9",
+      "full_name": "Mark The Zucc",
+      "date_of_birth": "1990-07-22",
+      "phone": "+40732345678",
+      "created_at": "2025-10-17T19:49:11.322803+00:00",
+      "updated_at": "2025-10-17T19:49:11.322803+00:00"
+    },
+    "date": "2025-10-18",
+    "consum": [
+      {"id": "be05471d-50b2-412f-b838-26d5aaeb061b", "details": {"mese": 1, "lichide_ml": 500, "calorii": 800}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "d622b88c-e545-47ed-aa4b-6298822fa22c", "details": {"mese": 2, "lichide_ml": 600, "calorii": 1100}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "364bb1a9-c307-4347-a42f-9b1a1d75039d", "details": {"mese": 1, "lichide_ml": 400, "calorii": 950}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "a8def80e-b90f-4a3d-a3f2-0ee581502fe9", "details": {"mese": 1, "lichide_ml": 500, "calorii": 800}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "41806bf9-dda4-4d3b-baae-a8d9189482e9", "details": {"mese": 2, "lichide_ml": 600, "calorii": 1100}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "10cae9ca-2d6e-4088-afc3-1cc89a3aef45", "details": {"mese": 1, "lichide_ml": 400, "calorii": 950}, "created_at": "2025-10-18T12:30:45.834432+00:00"}
+    ],
+    "somn": [
+      {"id": "2f24a916-d554-4a42-aa86-80bb81a90eb1", "details": {"ore_somn": 3.5, "calitate": "foarte slab", "treziri": 5}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "4fc6cc72-10a7-4681-98a6-1df826545e46", "details": {"ore_somn": 4, "calitate": "slab", "treziri": 4}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "856b91a4-9ab5-41d6-b73c-bfa4dad473fd", "details": {"ore_somn": 2.5, "calitate": "foarte slab", "treziri": 6}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "0972148d-19a5-423d-ae1e-4a6bb6fc42bc", "details": {"ore_somn": 3.5, "calitate": "foarte slab", "treziri": 5}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "644821c9-8be2-48fa-b4ff-7a4f3c7e0811", "details": {"ore_somn": 4, "calitate": "slab", "treziri": 4}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "3e5b4c9e-0c97-4101-81d8-775ba5287f8b", "details": {"ore_somn": 2.5, "calitate": "foarte slab", "treziri": 6}, "created_at": "2025-10-18T12:30:45.834432+00:00"}
+    ],
+    "vitale": [
+      {"id": "f0a73470-eb12-4e70-a2ae-6f1860e99829", "details": {"tensiune": "150/100", "puls": 95, "oxigenare": 91, "temperatura": 37.8}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "95d01993-b16a-4802-8731-cfab3ca6f9e7", "details": {"tensiune": "145/95", "puls": 100, "oxigenare": 90, "temperatura": 38.1}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "59bb34b5-e36a-4307-b1bc-394dfcb70aed", "details": {"tensiune": "148/98", "puls": 105, "oxigenare": 89, "temperatura": 38.3}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "b2f03279-a553-4340-bab3-1d4351afedd7", "details": {"tensiune": "150/100", "puls": 95, "oxigenare": 91, "temperatura": 37.8}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "33d9ae2d-2f20-4ffc-a62c-9eda8408fd97", "details": {"tensiune": "145/95", "puls": 100, "oxigenare": 90, "temperatura": 38.1}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "47c2d88a-c0e8-450d-9d7d-90134cb2d830", "details": {"tensiune": "148/98", "puls": 105, "oxigenare": 89, "temperatura": 38.3}, "created_at": "2025-10-18T12:30:45.834432+00:00"}
+    ],
+    "sport": [
+      {"id": "5fdce6fe-d1d9-47ab-9edc-148cf9eae43b", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "98c7acf8-acdf-4820-bf38-8ed5bfa513ba", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "7639b6ba-172c-413b-ac01-e912ef71382b", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:17.898448+00:00"},
+      {"id": "2c72c13d-fad5-42ef-925f-caa6acfcf401", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "afcbfb60-1a05-4e41-92c4-d8dafa938ac0", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:45.834432+00:00"},
+      {"id": "11436048-a789-4818-b861-a1f70e89ed0a", "details": {"intensitate": "sedentar", "durata_minute": 0, "tip": "n/a", "calorii": 0}, "created_at": "2025-10-18T12:30:45.834432+00:00"}
+    ],
+    "medicamente": [],
+    "total_records": 24
+  }
+}
