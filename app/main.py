@@ -201,42 +201,42 @@ async def ask_llm(request: Request, user_id: Optional[str] = Form(None), questio
             )
 
         # Step 2: Build hardcoded system prompt
-        system_message = """Ești un asistent medical AI care oferă feedback personalizat bazat pe datele de sănătate ale utilizatorului.
-Analizezi rezumatul de sănătate al utilizatorului (consum alimentar, somn, semne vitale, activitate fizică) și răspunzi la întrebarea lor cu insight-uri relevante din datele lor. Trebuie sa fi dur si sa oferi raspunsuri scurte si la obiect. Daca nu stii sigur motivul recomanda consultarea unui medic specialist dar cu mentionarea scurta a unor posibile cauze in baza profilului utilizatorului si a datelor disponibile."""
+        system_message = """You are a medical AI assistant that provides personalized feedback based on user health data.
+You analyze the user's health summary (food consumption, sleep, vital signs, physical activity) and respond to their questions with relevant insights from their data. You should be direct and provide short, concise answers. If you're not sure about the cause, recommend consulting a specialist doctor but briefly mention possible causes based on the user's profile and available data."""
 
         # Step 3: Format health summary for the prompt
-        user_name = summary.get("profile", {}).get("full_name", "Utilizator")
+        user_name = summary.get("profile", {}).get("full_name", "User")
 
         # Format each health data section
-        health_summary = f"""PROFIL UTILIZATOR:
-- Nume: {user_name}
-- Data nașterii: {summary.get("profile", {}).get("date_of_birth", "N/A")}
+        health_summary = f"""USER PROFILE:
+- Name: {user_name}
+- Date of Birth: {summary.get("profile", {}).get("date_of_birth", "N/A")}
 
-DATE DE SĂNĂTATE:
+HEALTH DATA:
 
-CONSUM (mese și lichide):
+CONSUMPTION (meals and liquids):
 {_format_data_section(summary.get("consum", []))}
 
-SOMN:
+SLEEP:
 {_format_data_section(summary.get("somn", []))}
 
-VITALE (tensiune, puls, oxigenare):
+VITALS (blood pressure, pulse, oxygen):
 {_format_data_section(summary.get("vitale", []))}
 
-SPORT (activitate fizică):
+SPORTS (physical activity):
 {_format_data_section(summary.get("sport", []))}
 
-MEDICAMENTE:
+MEDICATION:
 {_format_data_section(summary.get("medicamente", []))}"""
 
         # Step 4: Build user prompt combining question + health summary
-        prompt = f"""Întrebarea utilizatorului: {ask_req.question}
+        prompt = f"""User's question: {ask_req.question}
 
 {health_summary}
 
 ---
 
-Bazându-te pe datele de sănătate de mai sus, oferă un răspuns scurt și personalizat la întrebarea utilizatorului."""
+Based on the health data above, provide a short and personalized response to the user's question."""
 
         # Step 5: Call LLM with hardcoded parameters
         result = get_llm_response(
@@ -411,18 +411,18 @@ Răspunzi întotdeauna în limba română, într-un mod profesional dar accesibi
 def _format_data_section(data_list):
     """Helper function to format data section for LLM prompt"""
     if not data_list:
-        return "- Nu există date înregistrate"
-    
+        return "- No data recorded"
+
     formatted = []
     for idx, item in enumerate(data_list, 1):
         details = item.get("details", {})
         if isinstance(details, dict):
             details_str = ", ".join([f"{k}: {v}" for k, v in details.items()])
-            formatted.append(f"  Înregistrare {idx}: {details_str}")
+            formatted.append(f"  Record {idx}: {details_str}")
         else:
-            formatted.append(f"  Înregistrare {idx}: {details}")
-    
-    return "\n".join(formatted) if formatted else "- Nu există date înregistrate"
+            formatted.append(f"  Record {idx}: {details}")
+
+    return "\n".join(formatted) if formatted else "- No data recorded"
 
 
 @app.get("/api/v1/users")

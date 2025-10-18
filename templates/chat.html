@@ -8,6 +8,7 @@
     input: '',
     isLoading: false,
     showClearSuccess: false,
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
 
     init() {
         // Load chat history from localStorage
@@ -38,7 +39,7 @@
         this.saveMessages();
     },
 
-    sendMessage() {
+    async sendMessage() {
         if (!this.input.trim()) return;
 
         // Add user message
@@ -48,47 +49,55 @@
             timestamp: Date.now()
         };
         this.messages.push(userMessage);
+        const question = this.input;
         this.input = '';
 
         // Save to localStorage
         this.saveMessages();
         this.scrollToBottom();
 
-        // Simulate AI response
+        // Call /ask endpoint
         this.isLoading = true;
-        setTimeout(() => {
-            const aiResponse = this.generateMockResponse(userMessage.content);
+        try {
+            const formData = new FormData();
+            formData.append('user_id', this.userId);
+            formData.append('question', question);
+
+            const response = await fetch('/ask', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get response from server');
+            }
+
+            const data = await response.json();
+
+            // Add AI response
             this.messages.push({
                 role: 'assistant',
-                content: aiResponse,
+                content: data.generated_feedback,
                 timestamp: Date.now()
             });
+
             this.isLoading = false;
             this.saveMessages();
             this.scrollToBottom();
-        }, 1000 + Math.random() * 1000);
-    },
 
-    generateMockResponse(userInput) {
-        const input = userInput.toLowerCase();
+        } catch (error) {
+            console.error('Error calling /ask endpoint:', error);
 
-        if (input.includes('headache') || input.includes('head')) {
-            return 'I understand you\'re experiencing headaches. This could be related to several factors like stress, sleep, dehydration, or other health conditions. Have you noticed any triggers? I recommend scheduling an appointment with a neurologist for proper evaluation. Would you like me to help you find a specialist?';
-        }
-        else if (input.includes('sleep') || input.includes('tired') || input.includes('fatigue')) {
-            return 'Sleep issues can significantly impact your health. Based on your recent logs, you\'ve been sleeping about 7 hours which is good. However, if you\'re feeling tired, we should look into sleep quality. Try maintaining a consistent sleep schedule and avoiding screens before bed. Would you like to log your sleep patterns?';
-        }
-        else if (input.includes('eat') || input.includes('food') || input.includes('meal')) {
-            return 'Nutrition is crucial for your health! I can help you track your meals and calories. Would you like to add what you ate today? Just describe your meal in natural language and I\'ll help you log it.';
-        }
-        else if (input.includes('exercise') || input.includes('workout') || input.includes('sport')) {
-            return 'Great that you\'re thinking about physical activity! Regular exercise improves both physical and mental health. What type of activity are you interested in, or would you like to log a workout you\'ve completed?';
-        }
-        else if (input.includes('schedule') || input.includes('appointment') || input.includes('doctor')) {
-            return 'I can help you schedule an appointment! Based on your health concerns, I\'ll recommend the most suitable specialists. Would you like to see available doctors and clinics?';
-        }
-        else {
-            return 'I\'m here to help with your health concerns. You can ask me about symptoms, log your health data (meals, sleep, vitals, exercise), or schedule appointments with specialists. What would you like to do?';
+            // Add error message to chat
+            this.messages.push({
+                role: 'assistant',
+                content: 'Sorry, I encountered an error processing your request. Please try again.',
+                timestamp: Date.now()
+            });
+
+            this.isLoading = false;
+            this.saveMessages();
+            this.scrollToBottom();
         }
     },
 
