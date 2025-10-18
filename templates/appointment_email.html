@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .highlight {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .contact-info {
+            background: #e8f4f8;
+            border-left-color: #3498db;
+        }
+        .chat-message {
+            margin: 10px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .patient-msg {
+            border-left: 3px solid #3498db;
+            background: #e3f2fd;
+        }
+        .ai-msg {
+            border-left: 3px solid #9b59b6;
+            background: #f3e5f5;
+        }
+        .health-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-left-color: #667eea;
+        }
+        .score-display {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .health-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .health-table th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .health-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        .health-table tr:hover {
+            background: #f5f5f5;
+        }
+        .feedback-section {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏥 MedFlowAI - Appointment Request</h1>
+    <h2>Dear {{CLINIC_NAME}},</h2>
+    <p>MedFlowAI is forwarding a <strong>priority appointment request</strong> for a patient requiring professional medical consultation.</p>
+
+    <div class="section contact-info">
+        <h3>📞 Patient Contact Information</h3>
+        <p><strong>Name:</strong> {{PATIENT_NAME}}</p>
+        <p><strong>Email:</strong> {{PATIENT_EMAIL}}</p>
+        <p><strong>Phone:</strong> {{PATIENT_PHONE}}</p>
+    </div>
+
+    <div class="section health-score">
+        <h3>📊 Health Score</h3>
+        <div class="score-display">{{HEALTH_SCORE}}/100</div>
+        <p style="text-align: center; font-size: 14px; opacity: 0.9;">Based on recent health data and activity</p>
+    </div>
+
+    <div class="section">
+        <h3>📋 Health Data Summary</h3>
+        <p>Patient's recent health metrics from database:</p>
+        {{HEALTH_DATA_TABLE}}
+    </div>
+
+    <div class="section feedback-section">
+        <h3>🤖 AI Health Analysis</h3>
+        {{LLM_FEEDBACK}}
+    </div>
+
+    <div class="section highlight">
+        <h3>❓ Patient's Health Concern</h3>
+        <p style="font-size: 16px; font-style: italic;"><em>"{{MAIN_QUESTION}}"</em></p>
+    </div>
+
+    <div class="section">
+        <h3>💬 Conversation Summary</h3>
+        {{CHAT_HISTORY}}
+    </div>
+
+    <div class="section">
+        <h3>✅ Request</h3>
+        <p>This patient requires <strong>professional medical evaluation</strong>. Please contact the patient directly to schedule an appointment.</p>
+    </div>
+</body>
+</html>

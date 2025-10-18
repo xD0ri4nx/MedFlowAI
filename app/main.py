@@ -112,6 +112,15 @@ async def schedule_page(request: Request):
     return templates.TemplateResponse("schedule.html", {"request": request})
 
 
+@app.get("/templates/appointment_email.html", response_class=HTMLResponse)
+async def get_appointment_email_template():
+    """Serve raw appointment email template for JavaScript to fetch"""
+    template_path = BASE_DIR / "templates" / "appointment_email.html"
+    with open(template_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return HTMLResponse(content=content)
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -673,7 +682,7 @@ async def get_user_summary(user_id: str, target_date: Optional[str] = None):
 async def get_all_cabinete():
     """
     Get all medical offices/clinics.
-    
+
     Returns:
         List of all medical offices
     """
@@ -688,6 +697,165 @@ async def get_all_cabinete():
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch cabinete: {str(e)}"
+        )
+
+
+@app.post("/api/v1/recommend_clinic")
+async def recommend_clinic(request: Request):
+    """
+    Use LLM to recommend best clinic based on patient health data and chat history.
+
+    Request body:
+        - user_id: UUID of the user
+        - chat_history: Array of chat messages
+        - target_date: Optional date (YYYY-MM-DD)
+
+    Returns:
+        - profile: Patient profile data
+        - recommended_clinics: Ranked list of clinics
+        - reasoning: LLM explanation for top recommendations
+    """
+    try:
+        from datetime import date
+
+        body = await request.json()
+        user_id = body.get('user_id')
+        chat_history = body.get('chat_history', [])
+        target_date_str = body.get('target_date')
+
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+
+        # Parse target date
+        if target_date_str:
+            try:
+                target_date = date.fromisoformat(target_date_str)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format")
+        else:
+            target_date = date.today()
+
+        # Get health data
+        summary = supabase_service.get_daily_summary(user_id, target_date)
+        profile = summary.get('profile', {})
+
+        if not profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        # Get all clinics
+        cabinete = supabase_service.get_all_cabinete()
+
+        if not cabinete:
+            raise HTTPException(status_code=404, detail="No clinics available")
+
+        # Format chat history for LLM
+        chat_text = '\n'.join([
+            f"{'Patient' if msg.get('role') == 'user' else 'AI'}: {msg.get('content', '')}"
+            for msg in chat_history
+        ])
+
+        # Format health data
+        health_summary_text = f"""
+Nutrition: {len(summary.get('consum', []))} records
+Sleep: {len(summary.get('somn', []))} records
+Vitals: {len(summary.get('vitale', []))} records
+Activity: {len(summary.get('sport', []))} records
+"""
+
+        # Format clinics for LLM
+        clinics_text = '\n'.join([
+            f"- {clinic.get('nume', 'N/A')} (Category: {clinic.get('categorie', 'General')})"
+            for clinic in cabinete
+        ])
+
+        # Create LLM prompt
+        prompt = f"""You are a medical AI assistant helping match patients to appropriate clinics.
+
+PATIENT PROFILE:
+- Name: {profile.get('full_name', 'Unknown')}
+- Date of Birth: {profile.get('date_of_birth', 'N/A')}
+
+HEALTH DATA SUMMARY:
+{health_summary_text}
+
+CHAT CONVERSATION:
+{chat_text}
+
+AVAILABLE CLINICS:
+{clinics_text}
+
+Based on the patient's health concerns from the chat conversation and their health data, recommend the top 3-5 most appropriate clinics from the list above.
+
+For each recommended clinic, provide:
+1. Clinic name
+2. Relevance score (1-100)
+3. Brief reasoning (1-2 sentences) explaining why this clinic matches the patient's needs
+
+Return your response in JSON format:
+{{
+  "recommendations": [
+    {{
+      "clinic_name": "Clinic Name",
+      "score": 95,
+      "reasoning": "Brief explanation"
+    }}
+  ]
+}}"""
+
+        # Call LLM
+        llm_response = get_llm_response(
+            prompt=prompt,
+            system_message="You are a medical AI assistant. Respond ONLY with valid JSON.",
+            temperature=0.3,
+            max_tokens=1000
+        )
+
+        # Parse LLM response
+        import json
+        try:
+            recommendations_data = json.loads(llm_response)
+            recommendations = recommendations_data.get('recommendations', [])
+        except:
+            # Fallback if LLM doesn't return valid JSON
+            recommendations = []
+
+        # Match recommendations to actual clinic objects
+        recommended_clinics = []
+        for rec in recommendations:
+            clinic_name = rec.get('clinic_name', '')
+            matching_clinic = next(
+                (c for c in cabinete if c.get('nume', '').lower() == clinic_name.lower()),
+                None
+            )
+            if matching_clinic:
+                recommended_clinics.append({
+                    **matching_clinic,
+                    'recommendation_score': rec.get('score', 50),
+                    'recommendation_reasoning': rec.get('reasoning', '')
+                })
+
+        # If no matches, return all clinics sorted by category
+        if not recommended_clinics:
+            recommended_clinics = cabinete
+
+        return {
+            "success": True,
+            "profile": {
+                "full_name": profile.get('full_name', 'Patient'),
+                "email": profile.get('email', 'patient@example.com'),
+                "phone": profile.get('phone', '+40 XXX XXX XXX'),
+                "date_of_birth": profile.get('date_of_birth', 'N/A')
+            },
+            "recommended_clinics": recommended_clinics,
+            "total_clinics": len(cabinete)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to recommend clinic: {str(e)}"
         )
 
 

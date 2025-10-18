@@ -13,261 +13,66 @@
     isAnalyzing: false,
     consentGiven: null,
     clinicsReady: false,
+    showEmailModal: false,
+    emailPreview: '',
+    selectedClinic: null,
+    isGeneratingEmail: false,
+    patientProfile: null,
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
 
-    init() {
+    async init() {
         // Load chat history from localStorage
         const stored = localStorage.getItem('chatHistory');
         this.chatHistory = stored ? JSON.parse(stored) : [];
 
-        // Initialize dummy clinic data
-        this.allClinics = this.getDummyClinics();
-    },
-
-    getDummyClinics() {
-        return [
-            // Neurologists (for headaches)
-            {
-                id: 1,
-                name: 'Dr. Smith Neurology Center',
-                category: 'Neurologist',
-                rating: 4.9,
-                reviews: 245,
-                distance: '2.0 km',
-                address: '123 Main St, Downtown',
-                specialties: ['headache', 'migraine', 'head', 'brain', 'neurological']
-            },
-            {
-                id: 2,
-                name: 'City Headache & Migraine Clinic',
-                category: 'Headache Specialist',
-                rating: 4.7,
-                reviews: 180,
-                distance: '3.5 km',
-                address: '456 Oak Ave, Midtown',
-                specialties: ['headache', 'migraine', 'head', 'pain']
-            },
-            {
-                id: 3,
-                name: 'NeuroHealth Medical Group',
-                category: 'Neurologist',
-                rating: 4.8,
-                reviews: 210,
-                distance: '4.2 km',
-                address: '789 Elm St, Uptown',
-                specialties: ['headache', 'neurological', 'brain']
-            },
-
-            // Sleep specialists
-            {
-                id: 4,
-                name: 'Sleep & Wellness Clinic',
-                category: 'Sleep Medicine',
-                rating: 4.7,
-                reviews: 165,
-                distance: '2.8 km',
-                address: '321 Pine Rd, Eastside',
-                specialties: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest']
-            },
-            {
-                id: 5,
-                name: 'Rest Well Sleep Center',
-                category: 'Sleep Specialist',
-                rating: 4.6,
-                reviews: 142,
-                distance: '5.1 km',
-                address: '654 Maple Dr, Westside',
-                specialties: ['sleep', 'insomnia', 'tired', 'apnea']
-            },
-
-            // Cardiologists
-            {
-                id: 6,
-                name: 'HeartCare Medical Center',
-                category: 'Cardiologist',
-                rating: 4.9,
-                reviews: 298,
-                distance: '1.5 km',
-                address: '987 Cedar Ln, Central',
-                specialties: ['heart', 'cardiac', 'chest', 'cardiovascular']
-            },
-            {
-                id: 7,
-                name: 'Dr. Johnson Cardiology',
-                category: 'Cardiologist',
-                rating: 4.8,
-                reviews: 220,
-                distance: '3.0 km',
-                address: '147 Birch St, Northside',
-                specialties: ['heart', 'cardiac', 'blood pressure', 'cardiovascular']
-            },
-
-            // General practitioners
-            {
-                id: 8,
-                name: 'Family Health Clinic',
-                category: 'General Practitioner',
-                rating: 4.5,
-                reviews: 310,
-                distance: '1.2 km',
-                address: '258 Walnut Ave, Downtown',
-                specialties: ['general', 'primary care', 'family']
-            },
-            {
-                id: 9,
-                name: 'Metro Medical Associates',
-                category: 'General Practitioner',
-                rating: 4.6,
-                reviews: 275,
-                distance: '2.5 km',
-                address: '369 Spruce Blvd, Southside',
-                specialties: ['general', 'primary care', 'health']
-            },
-
-            // Orthopedists
-            {
-                id: 10,
-                name: 'Sports & Joint Clinic',
-                category: 'Orthopedist',
-                rating: 4.7,
-                reviews: 188,
-                distance: '4.0 km',
-                address: '741 Ash Ct, Athletic District',
-                specialties: ['joint', 'pain', 'sports', 'injury', 'bone']
-            },
-
-            // Dermatologists
-            {
-                id: 11,
-                name: 'Skin Health Center',
-                category: 'Dermatologist',
-                rating: 4.6,
-                reviews: 156,
-                distance: '3.2 km',
-                address: '852 Willow Way, Fashion District',
-                specialties: ['skin', 'rash', 'acne', 'dermatology']
-            },
-
-            // Gastroenterologists
-            {
-                id: 12,
-                name: 'Digestive Health Clinic',
-                category: 'Gastroenterologist',
-                rating: 4.8,
-                reviews: 192,
-                distance: '2.7 km',
-                address: '963 Cherry Pl, Medical District',
-                specialties: ['stomach', 'digestive', 'gastro', 'gut', 'abdominal']
-            },
-
-            // ENT (Ear, Nose, Throat)
-            {
-                id: 13,
-                name: 'Ear Nose Throat Associates',
-                category: 'ENT Specialist',
-                rating: 4.7,
-                reviews: 174,
-                distance: '3.8 km',
-                address: '159 Poplar Rd, Hospital District',
-                specialties: ['throat', 'ear', 'nose', 'sinus', 'ent']
-            },
-
-            // Psychiatrists / Mental Health
-            {
-                id: 14,
-                name: 'Mind & Wellness Center',
-                category: 'Psychiatrist',
-                rating: 4.8,
-                reviews: 203,
-                distance: '2.3 km',
-                address: '357 Magnolia Dr, Wellness District',
-                specialties: ['mental', 'stress', 'anxiety', 'depression', 'mood']
-            },
-
-            // Endocrinologists
-            {
-                id: 15,
-                name: 'Hormone & Diabetes Clinic',
-                category: 'Endocrinologist',
-                rating: 4.7,
-                reviews: 167,
-                distance: '4.5 km',
-                address: '486 Sycamore St, Research Park',
-                specialties: ['diabetes', 'hormone', 'thyroid', 'endocrine', 'metabolic']
+        // Fetch real clinics from database
+        try {
+            const response = await fetch('/api/v1/cabinete');
+            const data = await response.json();
+            if (data.success) {
+                this.allClinics = data.cabinete || [];
             }
-        ];
+        } catch (error) {
+            console.error('Error loading clinics:', error);
+            this.allClinics = [];
+        }
     },
 
-    handleConsent(consent) {
+    async handleConsent(consent) {
         this.consentGiven = consent;
         this.showConsentModal = false;
 
         if (consent) {
-            // Show spinner and analyze
+            // Call LLM to analyze and recommend clinics
             this.isAnalyzing = true;
-            setTimeout(() => {
-                this.analyzeChatAndMatch();
+            try {
+                const response = await fetch('/api/v1/recommend_clinic', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: this.userId,
+                        chat_history: this.chatHistory
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to get recommendations');
+
+                const data = await response.json();
+                this.patientProfile = data.profile;
+                this.recommendedClinics = data.recommended_clinics || this.allClinics;
                 this.isAnalyzing = false;
                 this.clinicsReady = true;
-            }, 2000); // 2 second delay to simulate AI processing
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                // Fallback to showing all clinics
+                this.recommendedClinics = this.allClinics;
+                this.isAnalyzing = false;
+                this.clinicsReady = true;
+            }
         } else {
-            // Just show all clinics sorted by rating
-            this.recommendedClinics = this.allClinics
-                .slice()
-                .sort((a, b) => b.rating - a.rating);
+            // Just show all clinics without recommendations
+            this.recommendedClinics = this.allClinics;
             this.clinicsReady = true;
-        }
-    },
-
-    analyzeChatAndMatch() {
-        // Extract text from chat history
-        const chatText = this.chatHistory
-            .map(msg => msg.content)
-            .join(' ')
-            .toLowerCase();
-
-        // Detect keywords
-        const keywords = new Set();
-
-        // Check for each specialty
-        this.allClinics.forEach(clinic => {
-            clinic.specialties.forEach(specialty => {
-                if (chatText.includes(specialty)) {
-                    keywords.add(specialty);
-                }
-            });
-        });
-
-        this.detectedKeywords = Array.from(keywords);
-
-        // Match and sort clinics
-        if (this.detectedKeywords.length > 0) {
-            // Score each clinic based on keyword matches
-            const scored = this.allClinics.map(clinic => {
-                let score = 0;
-                this.detectedKeywords.forEach(keyword => {
-                    if (clinic.specialties.includes(keyword)) {
-                        score += 10;
-                    }
-                });
-                // Add rating bonus
-                score += clinic.rating * 2;
-                return { ...clinic, matchScore: score };
-            });
-
-            // Sort by score, then rating
-            this.recommendedClinics = scored
-                .filter(c => c.matchScore > 0)
-                .sort((a, b) => {
-                    if (b.matchScore !== a.matchScore) {
-                        return b.matchScore - a.matchScore;
-                    }
-                    return b.rating - a.rating;
-                });
-        } else {
-            // No keywords detected, show top rated
-            this.recommendedClinics = this.allClinics
-                .slice()
-                .sort((a, b) => b.rating - a.rating);
         }
     },
 
@@ -282,6 +87,105 @@
             stars += '⭐';
         }
         return stars;
+    },
+
+    async bookAppointment(clinic) {
+        this.selectedClinic = clinic;
+        this.isGeneratingEmail = true;
+        this.showEmailModal = true;
+
+        try {
+            // Step 1: Fetch health data from backend API
+            const healthResponse = await fetch('/api/v1/generate_alert?user_id=' + this.userId);
+            if (!healthResponse.ok) throw new Error('Failed to fetch health data');
+            const healthData = await healthResponse.json();
+
+            // Step 1.5: Get patient profile if not already loaded
+            if (!this.patientProfile) {
+                const summary = healthData.summary || {};
+                const profile = summary.profile || {};
+                this.patientProfile = {
+                    full_name: profile.full_name || 'Patient',
+                    email: profile.email || 'patient@example.com',
+                    phone: profile.phone || '+40 XXX XXX XXX'
+                };
+            }
+
+            // Step 2: Fetch email template
+            const templateResponse = await fetch('/templates/appointment_email.html');
+            if (!templateResponse.ok) throw new Error('Failed to load template');
+            let emailTemplate = await templateResponse.text();
+
+            // Step 3: Extract data from API response
+            const healthScore = healthData.health_score || 50;
+            const summary = healthData.summary || {};
+            const llmFeedback = healthData.feedback || 'No feedback available';
+            const briefSummaries = healthData.brief_summaries || {};
+
+            // Step 4: Build health data table
+            let healthTableHtml = '<table class=\'health-table\'>';
+            healthTableHtml += '<thead><tr><th>Category</th><th>Summary</th><th>Details</th></tr></thead>';
+            healthTableHtml += '<tbody>';
+
+            const categories = [
+                {key: 'consum', icon: '🍽️', name: 'Nutrition'},
+                {key: 'somn', icon: '😴', name: 'Sleep'},
+                {key: 'vitale', icon: '❤️', name: 'Vitals'},
+                {key: 'sport', icon: '🏃', name: 'Physical Activity'}
+            ];
+
+            categories.forEach(cat => {
+                const brief = briefSummaries[cat.key] || 'No data';
+                const data = summary[cat.key] || [];
+                const count = data.length;
+                healthTableHtml += '<tr>';
+                healthTableHtml += '<td>' + cat.icon + ' <strong>' + cat.name + '</strong></td>';
+                healthTableHtml += '<td>' + brief + '</td>';
+                healthTableHtml += '<td>' + count + ' records logged</td>';
+                healthTableHtml += '</tr>';
+            });
+
+            healthTableHtml += '</tbody></table>';
+
+            // Step 5: Get main health concern from first user message
+            const userMessages = this.chatHistory.filter(m => m.role === 'user');
+            const mainQuestion = userMessages.length > 0 ? userMessages[0].content : 'General health consultation';
+
+            // Step 6: Format chat history as HTML
+            let chatHistoryHtml = '';
+            if (this.chatHistory.length > 0) {
+                this.chatHistory.forEach(msg => {
+                    const cssClass = msg.role === 'user' ? 'patient-msg' : 'ai-msg';
+                    const label = msg.role === 'user' ? 'Patient' : 'AI Assistant';
+                    chatHistoryHtml += '<div class=\'chat-message ' + cssClass + '\'>';
+                    chatHistoryHtml += '<strong>' + label + ':</strong><br>';
+                    chatHistoryHtml += msg.content;
+                    chatHistoryHtml += '</div>';
+                });
+            } else {
+                chatHistoryHtml = '<p>No chat history available</p>';
+            }
+
+            // Step 7: Replace all placeholders with actual data from patient profile
+            const clinicName = clinic.nume || clinic.name || 'Clinic';
+            emailTemplate = emailTemplate.replace(/\{\{CLINIC_NAME\}\}/g, clinicName);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_NAME\}\}/g, this.patientProfile.full_name);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_EMAIL\}\}/g, this.patientProfile.email);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_PHONE\}\}/g, this.patientProfile.phone);
+            emailTemplate = emailTemplate.replace(/\{\{HEALTH_SCORE\}\}/g, healthScore);
+            emailTemplate = emailTemplate.replace(/\{\{HEALTH_DATA_TABLE\}\}/g, healthTableHtml);
+            emailTemplate = emailTemplate.replace(/\{\{LLM_FEEDBACK\}\}/g, llmFeedback);
+            emailTemplate = emailTemplate.replace(/\{\{MAIN_QUESTION\}\}/g, mainQuestion);
+            emailTemplate = emailTemplate.replace(/\{\{CHAT_HISTORY\}\}/g, chatHistoryHtml);
+
+            this.emailPreview = emailTemplate;
+            this.isGeneratingEmail = false;
+
+        } catch (error) {
+            console.error('Error generating email:', error);
+            this.emailPreview = '<div style=\'color: red; padding: 20px;\'>Error loading email: ' + error.message + '</div>';
+            this.isGeneratingEmail = false;
+        }
     }
 }">
 
@@ -369,31 +273,36 @@
             <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex-1">
-                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.name"></h3>
-                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.category"></p>
+                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.nume || clinic.name"></h3>
+                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.categorie || clinic.category || 'Medical Clinic'"></p>
 
-                        <div class="flex items-center space-x-2 mb-2">
+                        <div x-show="clinic.rating" class="flex items-center space-x-2 mb-2">
                             <span x-html="renderStars(clinic.rating)"></span>
                             <span class="text-sm font-semibold text-gray-700" x-text="clinic.rating"></span>
                             <span class="text-xs text-gray-500">(<span x-text="clinic.reviews"></span> reviews)</span>
                         </div>
 
+                        <div x-show="clinic.recommendation_score" class="mb-2">
+                            <span class="text-xs font-semibold text-blue-600">Match Score: <span x-text="clinic.recommendation_score"></span>/100</span>
+                            <p class="text-xs text-gray-600 mt-1" x-text="clinic.recommendation_reasoning"></p>
+                        </div>
+
                         <div class="flex items-center space-x-4 text-xs text-gray-600">
-                            <div class="flex items-center">
+                            <div x-show="clinic.distance" class="flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
                                 <span x-text="clinic.distance"></span>
                             </div>
-                            <span x-text="clinic.address" class="truncate"></span>
+                            <span x-show="clinic.address || clinic.adresa" x-text="clinic.address || clinic.adresa" class="truncate"></span>
                         </div>
                     </div>
 
                     <div class="text-4xl ml-3">🏥</div>
                 </div>
 
-                <button @click="alert('Booking feature coming soon!')"
+                <button @click="bookAppointment(clinic)"
                         class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition flex items-center justify-center space-x-2">
                     <span>Book Appointment</span>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,6 +311,61 @@
                 </button>
             </div>
         </template>
+    </div>
+
+    <!-- Email Preview Modal -->
+    <div x-show="showEmailModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         @click.self="showEmailModal = false">
+
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" @click.stop>
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                <h3 class="text-xl font-bold text-gray-900">📧 Appointment Request Email Preview</h3>
+                <button @click="showEmailModal = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div x-show="isGeneratingEmail" class="p-12 text-center">
+                <svg class="animate-spin h-12 w-12 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-gray-600 font-medium">Generating appointment request...</p>
+            </div>
+
+            <div x-show="!isGeneratingEmail" class="overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                <div class="p-6">
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-gray-600">
+                            <strong>To:</strong> <span x-text="selectedClinic?.nume || selectedClinic?.name"></span><br>
+                            <strong>Subject:</strong> Urgent Appointment Request - Patient Health Consultation
+                        </p>
+                    </div>
+
+                    <div class="border border-gray-300 rounded-lg overflow-hidden bg-white">
+                        <iframe :srcdoc="emailPreview" class="w-full" style="height: 600px; border: none;" sandbox="allow-same-origin"></iframe>
+                    </div>
+
+                    <div class="mt-6 flex space-x-3">
+                        <button @click="showEmailModal = false" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
+                            Close Preview
+                        </button>
+                        <button @click="alert('Email sent to clinic! (Mock action)'); showEmailModal = false;" class="flex-1 bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Send Request</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
