@@ -303,7 +303,10 @@ class SupabaseService:
                 "somn": [],
                 "vitale": [],
                 "sport": [],
+<<<<<<< HEAD
                 "medicamente": [],
+=======
+>>>>>>> fd1159d40005e515835d2df3254236d03ef001d2
                 "total_records": len(general_data)
             }
             
@@ -324,7 +327,11 @@ class SupabaseService:
                         "created_at": record.get("created_at")
                     })
             
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> fd1159d40005e515835d2df3254236d03ef001d2
 
             return summary
         except Exception as e:
@@ -366,7 +373,10 @@ class SupabaseService:
                 "somn": [],
                 "vitale": [],
                 "sport": [],
+<<<<<<< HEAD
                 "medicamente": [],
+=======
+>>>>>>> fd1159d40005e515835d2df3254236d03ef001d2
                 "total_records": len(general_data)
             }
             
