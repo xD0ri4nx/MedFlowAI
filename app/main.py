@@ -112,6 +112,15 @@ async def schedule_page(request: Request):
     return templates.TemplateResponse("schedule.html", {"request": request})
 
 
+@app.get("/templates/appointment_email.html", response_class=HTMLResponse)
+async def get_appointment_email_template():
+    """Serve raw appointment email template for JavaScript to fetch"""
+    template_path = BASE_DIR / "templates" / "appointment_email.html"
+    with open(template_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return HTMLResponse(content=content)
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

@@ -13,6 +13,10 @@
     isAnalyzing: false,
     consentGiven: null,
     clinicsReady: false,
+    showEmailModal: false,
+    emailPreview: '',
+    selectedClinic: null,
+    isGeneratingEmail: false,
 
     init() {
         // Load chat history from localStorage
@@ -282,6 +286,93 @@
             stars += '⭐';
         }
         return stars;
+    },
+
+    async bookAppointment(clinic) {
+        this.selectedClinic = clinic;
+        this.isGeneratingEmail = true;
+        this.showEmailModal = true;
+
+        try {
+            // Step 1: Fetch health data from backend API
+            const healthResponse = await fetch('/api/v1/generate_alert?user_id=' + this.userId);
+            if (!healthResponse.ok) throw new Error('Failed to fetch health data');
+            const healthData = await healthResponse.json();
+
+            // Step 2: Fetch email template
+            const templateResponse = await fetch('/templates/appointment_email.html');
+            if (!templateResponse.ok) throw new Error('Failed to load template');
+            let emailTemplate = await templateResponse.text();
+
+            // Step 3: Extract data from API response
+            const healthScore = healthData.health_score || 50;
+            const summary = healthData.summary || {};
+            const llmFeedback = healthData.feedback || 'No feedback available';
+            const briefSummaries = healthData.brief_summaries || {};
+
+            // Step 4: Build health data table
+            let healthTableHtml = '<table class=\'health-table\'>';
+            healthTableHtml += '<thead><tr><th>Category</th><th>Summary</th><th>Details</th></tr></thead>';
+            healthTableHtml += '<tbody>';
+
+            const categories = [
+                {key: 'consum', icon: '🍽️', name: 'Nutrition'},
+                {key: 'somn', icon: '😴', name: 'Sleep'},
+                {key: 'vitale', icon: '❤️', name: 'Vitals'},
+                {key: 'sport', icon: '🏃', name: 'Physical Activity'}
+            ];
+
+            categories.forEach(cat => {
+                const brief = briefSummaries[cat.key] || 'No data';
+                const data = summary[cat.key] || [];
+                const count = data.length;
+                healthTableHtml += '<tr>';
+                healthTableHtml += '<td>' + cat.icon + ' <strong>' + cat.name + '</strong></td>';
+                healthTableHtml += '<td>' + brief + '</td>';
+                healthTableHtml += '<td>' + count + ' records logged</td>';
+                healthTableHtml += '</tr>';
+            });
+
+            healthTableHtml += '</tbody></table>';
+
+            // Step 5: Get main health concern from first user message
+            const userMessages = this.chatHistory.filter(m => m.role === 'user');
+            const mainQuestion = userMessages.length > 0 ? userMessages[0].content : 'General health consultation';
+
+            // Step 6: Format chat history as HTML
+            let chatHistoryHtml = '';
+            if (this.chatHistory.length > 0) {
+                this.chatHistory.forEach(msg => {
+                    const cssClass = msg.role === 'user' ? 'patient-msg' : 'ai-msg';
+                    const label = msg.role === 'user' ? 'Patient' : 'AI Assistant';
+                    chatHistoryHtml += '<div class=\'chat-message ' + cssClass + '\'>';
+                    chatHistoryHtml += '<strong>' + label + ':</strong><br>';
+                    chatHistoryHtml += msg.content;
+                    chatHistoryHtml += '</div>';
+                });
+            } else {
+                chatHistoryHtml = '<p>No chat history available</p>';
+            }
+
+            // Step 7: Replace all placeholders with actual data
+            emailTemplate = emailTemplate.replace(/\{\{CLINIC_NAME\}\}/g, clinic.name);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_NAME\}\}/g, 'Mark Johnson');
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_EMAIL\}\}/g, 'mark@example.com');
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_PHONE\}\}/g, '+40732345678');
+            emailTemplate = emailTemplate.replace(/\{\{HEALTH_SCORE\}\}/g, healthScore);
+            emailTemplate = emailTemplate.replace(/\{\{HEALTH_DATA_TABLE\}\}/g, healthTableHtml);
+            emailTemplate = emailTemplate.replace(/\{\{LLM_FEEDBACK\}\}/g, llmFeedback);
+            emailTemplate = emailTemplate.replace(/\{\{MAIN_QUESTION\}\}/g, mainQuestion);
+            emailTemplate = emailTemplate.replace(/\{\{CHAT_HISTORY\}\}/g, chatHistoryHtml);
+
+            this.emailPreview = emailTemplate;
+            this.isGeneratingEmail = false;
+
+        } catch (error) {
+            console.error('Error generating email:', error);
+            this.emailPreview = '<div style=\'color: red; padding: 20px;\'>Error loading email: ' + error.message + '</div>';
+            this.isGeneratingEmail = false;
+        }
     }
 }">
 
@@ -393,7 +484,7 @@
                     <div class="text-4xl ml-3">🏥</div>
                 </div>
 
-                <button @click="alert('Booking feature coming soon!')"
+                <button @click="bookAppointment(clinic)"
                         class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition flex items-center justify-center space-x-2">
                     <span>Book Appointment</span>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,6 +493,61 @@
                 </button>
             </div>
         </template>
+    </div>
+
+    <!-- Email Preview Modal -->
+    <div x-show="showEmailModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         @click.self="showEmailModal = false">
+
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" @click.stop>
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                <h3 class="text-xl font-bold text-gray-900">📧 Appointment Request Email Preview</h3>
+                <button @click="showEmailModal = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div x-show="isGeneratingEmail" class="p-12 text-center">
+                <svg class="animate-spin h-12 w-12 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-gray-600 font-medium">Generating appointment request...</p>
+            </div>
+
+            <div x-show="!isGeneratingEmail" class="overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                <div class="p-6">
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-gray-600">
+                            <strong>To:</strong> <span x-text="selectedClinic?.name"></span><br>
+                            <strong>Subject:</strong> Urgent Appointment Request - Patient Health Consultation
+                        </p>
+                    </div>
+
+                    <div class="border border-gray-300 rounded-lg overflow-hidden bg-white">
+                        <iframe :srcdoc="emailPreview" class="w-full" style="height: 600px; border: none;" sandbox="allow-same-origin"></iframe>
+                    </div>
+
+                    <div class="mt-6 flex space-x-3">
+                        <button @click="showEmailModal = false" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
+                            Close Preview
+                        </button>
+                        <button @click="alert('Email sent to clinic! (Mock action)'); showEmailModal = false;" class="flex-1 bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Send Request</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
