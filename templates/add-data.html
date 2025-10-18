@@ -7,76 +7,103 @@
     activeTab: 'consum',
     showSuccess: false,
     successMessage: '',
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
 
     // Form data for each type
     consumData: { mese: '', lichide_ml: '', calorii: '' },
-    somnData: { ore_somn: '', calitate: 'good', treziri: '' },
+    somnData: { ore_somn: '', calitate: 'bun', treziri: '' },
     vitaleData: { tensiune: '', puls: '', oxigenare: '', temperatura: '' },
-    sportData: { tip: '', durata_minute: '', intensitate: 'moderate', calorii: '' },
+    sportData: { tip: '', durata_minute: '', intensitate: 'moderată', calorii: '' },
     medicamenteData: { descriere: '' },
 
     aiInput: '',
     aiPreview: null,
+    aiLoading: false,
 
-    parseAIInput() {
+    async parseAIInput() {
         if (!this.aiInput.trim()) return;
-
-        // Simulate AI parsing
-        const input = this.aiInput.toLowerCase();
-        let preview = {};
-
-        if (this.activeTab === 'consum') {
-            // Example parsing for food
-            preview = {
-                mese: 2,
-                lichide_ml: 1500,
-                calorii: 1800
-            };
-        } else if (this.activeTab === 'somn') {
-            preview = {
-                ore_somn: 7,
-                calitate: 'good',
-                treziri: 1
-            };
-        } else if (this.activeTab === 'vitale') {
-            preview = {
-                tensiune: '120/80',
-                puls: 75,
-                oxigenare: 98,
-                temperatura: 36.8
-            };
-        } else if (this.activeTab === 'sport') {
-            preview = {
-                tip: 'Running',
-                durata_minute: 30,
-                intensitate: 'moderate',
-                calorii: 300
-            };
+        
+        try {
+            this.aiLoading = true;
+            const response = await fetch('/api/v1/ai_parse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: this.aiInput,
+                    category: this.activeTab
+                })
+            });
+            
+            if (!response.ok) throw new Error('Failed to parse');
+            
+            const result = await response.json();
+            this.aiPreview = result.data;
+            this.aiLoading = false;
+        } catch (err) {
+            this.aiLoading = false;
+            alert('Error parsing input: ' + err.message);
         }
-
-        this.aiPreview = preview;
     },
 
-    confirmAIParsed() {
-        this.showSuccessMessage('Data added successfully via AI!');
-        this.aiInput = '';
-        this.aiPreview = null;
+    async confirmAIParsed() {
+        try {
+            const response = await fetch('/api/v1/add_health_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: this.activeTab,
+                    data: this.aiPreview,
+                    user_id: this.userId
+                })
+            });
+            
+            if (!response.ok) throw new Error('Failed to save');
+            
+            this.showSuccessMessage('Data added successfully via AI!');
+            this.aiInput = '';
+            this.aiPreview = null;
+        } catch (err) {
+            alert('Error saving data: ' + err.message);
+        }
     },
 
-    submitManualForm(type) {
-        this.showSuccessMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} data saved!`);
-
-        // Reset form
-        if (type === 'consum') {
-            this.consumData = { mese: '', lichide_ml: '', calorii: '' };
-        } else if (type === 'somn') {
-            this.somnData = { ore_somn: '', calitate: 'good', treziri: '' };
-        } else if (type === 'vitale') {
-            this.vitaleData = { tensiune: '', puls: '', oxigenare: '', temperatura: '' };
-        } else if (type === 'sport') {
-            this.sportData = { tip: '', durata_minute: '', intensitate: 'moderate', calorii: '' };
-        } else if (type === 'medicamente') {
-            this.medicamenteData = { descriere: '' };
+    async submitManualForm(type) {
+        let data;
+        if (type === 'consum') data = this.consumData;
+        else if (type === 'somn') data = this.somnData;
+        else if (type === 'vitale') data = this.vitaleData;
+        else if (type === 'sport') data = this.sportData;
+        else if (type === 'medicamente') data = this.medicamenteData;
+        
+        try {
+            const response = await fetch('/api/v1/add_health_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: type,
+                    data: data,
+                    user_id: this.userId
+                })
+            });
+            
+            if (!response.ok) throw new Error('Failed to save');
+            
+            this.showSuccessMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} data saved!`);
+            
+            // Reset form
+            if (type === 'consum') {
+                this.consumData = { mese: '', lichide_ml: '', calorii: '' };
+            } else if (type === 'somn') {
+                this.somnData = { ore_somn: '', calitate: 'bun', treziri: '' };
+            } else if (type === 'vitale') {
+                this.vitaleData = { tensiune: '', puls: '', oxigenare: '', temperatura: '' };
+            } else if (type === 'sport') {
+                this.sportData = { tip: '', durata_minute: '', intensitate: 'moderată', calorii: '' };
+            } else if (type === 'medicamente') {
+                this.medicamenteData = { descriere: '' };
+            }
+        } catch (err) {
+            alert('Error saving data: ' + err.message);
         }
     },
 
@@ -159,9 +186,13 @@
                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"></textarea>
 
         <button @click="parseAIInput()"
-                :disabled="!aiInput.trim()"
-                class="mt-3 w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
-            Parse & Preview
+                :disabled="!aiInput.trim() || aiLoading"
+                class="mt-3 w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+            <svg x-show="aiLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span x-text="aiLoading ? 'Parsing...' : 'Parse & Preview'"></span>
         </button>
 
         <!-- AI Preview -->
