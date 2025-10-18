@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule - MedFlowAI{% endblock %}
+
+{% block content %}
+<div x-data="{
+    chatHistory: [],
+    detectedKeywords: [],
+    recommendedClinics: [],
+    allClinics: [],
+    showAll: false,
+    selectedClinic: null,
+    showModal: false,
+    showEmailModal: false,
+    selectedAppointmentEmail: '',
+    appointments: [],
+
+    init() {
+        // Load chat history from localStorage
+        const stored = localStorage.getItem('chatHistory');
+        this.chatHistory = stored ? JSON.parse(stored) : [];
+
+        // Initialize dummy clinic data
+        this.allClinics = this.getDummyClinics();
+
+        // Analyze chat and match clinics
+        this.analyzeChatAndMatch();
+
+        // Load dummy appointments
+        this.appointments = [
+            {
+                id: 1,
+                date: 'Oct 25, 2025',
+                time: '10:00 AM',
+                clinic: 'Dr. Johnson Cardiology',
+                status: 'confirmed',
+                chatContext: 'User reported experiencing frequent headaches for the past 3 days'
+            }
+        ];
+    },
+
+    getDummyClinics() {
+        return [
+            // Neurologists (for headaches)
+            {
+                id: 1,
+                name: 'Dr. Smith Neurology Center',
+                category: 'Neurologist',
+                rating: 4.9,
+                reviews: 245,
+                distance: '2.0 km',
+                address: '123 Main St, Downtown',
+                specialties: ['headache', 'migraine', 'head', 'brain', 'neurological']
+            },
+            {
+                id: 2,
+                name: 'City Headache & Migraine Clinic',
+                category: 'Headache Specialist',
+                rating: 4.7,
+                reviews: 180,
+                distance: '3.5 km',
+                address: '456 Oak Ave, Midtown',
+                specialties: ['headache', 'migraine', 'head', 'pain']
+            },
+            {
+                id: 3,
+                name: 'NeuroHealth Medical Group',
+                category: 'Neurologist',
+                rating: 4.8,
+                reviews: 210,
+                distance: '4.2 km',
+                address: '789 Elm St, Uptown',
+                specialties: ['headache', 'neurological', 'brain']
+            },
+
+            // Sleep specialists
+            {
+                id: 4,
+                name: 'Sleep & Wellness Clinic',
+                category: 'Sleep Medicine',
+                rating: 4.7,
+                reviews: 165,
+                distance: '2.8 km',
+                address: '321 Pine Rd, Eastside',
+                specialties: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest']
+            },
+            {
+                id: 5,
+                name: 'Rest Well Sleep Center',
+                category: 'Sleep Specialist',
+                rating: 4.6,
+                reviews: 142,
+                distance: '5.1 km',
+                address: '654 Maple Dr, Westside',
+                specialties: ['sleep', 'insomnia', 'tired', 'apnea']
+            },
+
+            // Cardiologists
+            {
+                id: 6,
+                name: 'HeartCare Medical Center',
+                category: 'Cardiologist',
+                rating: 4.9,
+                reviews: 298,
+                distance: '1.5 km',
+                address: '987 Cedar Ln, Central',
+                specialties: ['heart', 'cardiac', 'chest', 'cardiovascular']
+            },
+            {
+                id: 7,
+                name: 'Dr. Johnson Cardiology',
+                category: 'Cardiologist',
+                rating: 4.8,
+                reviews: 220,
+                distance: '3.0 km',
+                address: '147 Birch St, Northside',
+                specialties: ['heart', 'cardiac', 'blood pressure', 'cardiovascular']
+            },
+
+            // General practitioners
+            {
+                id: 8,
+                name: 'Family Health Clinic',
+                category: 'General Practitioner',
+                rating: 4.5,
+                reviews: 310,
+                distance: '1.2 km',
+                address: '258 Walnut Ave, Downtown',
+                specialties: ['general', 'primary care', 'family']
+            },
+            {
+                id: 9,
+                name: 'Metro Medical Associates',
+                category: 'General Practitioner',
+                rating: 4.6,
+                reviews: 275,
+                distance: '2.5 km',
+                address: '369 Spruce Blvd, Southside',
+                specialties: ['general', 'primary care', 'health']
+            },
+
+            // Orthopedists
+            {
+                id: 10,
+                name: 'Sports & Joint Clinic',
+                category: 'Orthopedist',
+                rating: 4.7,
+                reviews: 188,
+                distance: '4.0 km',
+                address: '741 Ash Ct, Athletic District',
+                specialties: ['joint', 'pain', 'sports', 'injury', 'bone']
+            },
+
+            // Dermatologists
+            {
+                id: 11,
+                name: 'Skin Health Center',
+                category: 'Dermatologist',
+                rating: 4.6,
+                reviews: 156,
+                distance: '3.2 km',
+                address: '852 Willow Way, Fashion District',
+                specialties: ['skin', 'rash', 'acne', 'dermatology']
+            },
+
+            // Gastroenterologists
+            {
+                id: 12,
+                name: 'Digestive Health Clinic',
+                category: 'Gastroenterologist',
+                rating: 4.8,
+                reviews: 192,
+                distance: '2.7 km',
+                address: '963 Cherry Pl, Medical District',
+                specialties: ['stomach', 'digestive', 'gastro', 'gut', 'abdominal']
+            },
+
+            // ENT (Ear, Nose, Throat)
+            {
+                id: 13,
+                name: 'Ear Nose Throat Associates',
+                category: 'ENT Specialist',
+                rating: 4.7,
+                reviews: 174,
+                distance: '3.8 km',
+                address: '159 Poplar Rd, Hospital District',
+                specialties: ['throat', 'ear', 'nose', 'sinus', 'ent']
+            },
+
+            // Psychiatrists / Mental Health
+            {
+                id: 14,
+                name: 'Mind & Wellness Center',
+                category: 'Psychiatrist',
+                rating: 4.8,
+                reviews: 203,
+                distance: '2.3 km',
+                address: '357 Magnolia Dr, Wellness District',
+                specialties: ['mental', 'stress', 'anxiety', 'depression', 'mood']
+            },
+
+            // Endocrinologists
+            {
+                id: 15,
+                name: 'Hormone & Diabetes Clinic',
+                category: 'Endocrinologist',
+                rating: 4.7,
+                reviews: 167,
+                distance: '4.5 km',
+                address: '486 Sycamore St, Research Park',
+                specialties: ['diabetes', 'hormone', 'thyroid', 'endocrine', 'metabolic']
+            }
+        ];
+    },
+
+    analyzeChatAndMatch() {
+        // Extract text from chat history
+        const chatText = this.chatHistory
+            .map(msg => msg.content)
+            .join(' ')
+            .toLowerCase();
+
+        // Detect keywords
+        const keywords = new Set();
+
+        // Check for each specialty
+        this.allClinics.forEach(clinic => {
+            clinic.specialties.forEach(specialty => {
+                if (chatText.includes(specialty)) {
+                    keywords.add(specialty);
+                }
+            });
+        });
+
+        this.detectedKeywords = Array.from(keywords);
+
+        // Match and sort clinics
+        if (this.detectedKeywords.length > 0) {
+            // Score each clinic based on keyword matches
+            const scored = this.allClinics.map(clinic => {
+                let score = 0;
+                this.detectedKeywords.forEach(keyword => {
+                    if (clinic.specialties.includes(keyword)) {
+                        score += 10;
+                    }
+                });
+                // Add rating bonus
+                score += clinic.rating * 2;
+                return { ...clinic, matchScore: score };
+            });
+
+            // Sort by score, then rating
+            this.recommendedClinics = scored
+                .filter(c => c.matchScore > 0)
+                .sort((a, b) => {
+                    if (b.matchScore !== a.matchScore) {
+                        return b.matchScore - a.matchScore;
+                    }
+                    return b.rating - a.rating;
+                })
+                .slice(0, 5); // Top 5
+        } else {
+            // No keywords detected, show general practitioners and top rated
+            this.recommendedClinics = this.allClinics
+                .slice()
+                .sort((a, b) => b.rating - a.rating)
+                .slice(0, 5);
+        }
+    },
+
+    requestAppointment(clinic) {
+        this.selectedClinic = clinic;
+        // Generate email preview for this clinic
+        this.generateAppointmentEmail(clinic);
+    },
+
+    generateAppointmentEmail(clinic) {
+        // Generate HTML email based on chat history and selected clinic
+        const chatSummary = this.chatHistory
+            .map(msg => `<p><strong>${msg.role === 'user' ? 'Patient' : 'AI'}:</strong> ${msg.content}</p>`)
+            .join('');
+
+        // Extract main health concern from chat
+        const userMessages = this.chatHistory.filter(m => m.role === 'user');
+        const mainConcern = userMessages.length > 0 ? userMessages[0].content : 'General health consultation';
+
+        this.selectedAppointmentEmail = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .section { margin-bottom: 30px; background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .section h3 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        .patient-info { background-color: #e8f4f8; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #3498db; color: white; }
+        .footer { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 style="margin: 0;">🏥 MedFlowAI - Appointment Request</h1>
+            <p style="margin: 5px 0 0 0;">Priority Medical Consultation Required</p>
+        </div>
+
+        <!-- Greeting -->
+        <div class="section">
+            <h2 style="margin-top: 0;">Dear ${clinic.name},</h2>
+            <p>MedFlowAI is forwarding a <strong>priority appointment request</strong> for a patient requiring professional medical consultation based on AI health analysis.</p>
+        </div>
+
+        <!-- Patient Contact Information -->
+        <div class="patient-info">
+            <h3 style="margin-top: 0;">📞 PATIENT CONTACT INFORMATION</h3>
+            <table style="border: none;">
+                <tr><td style="border: none;"><strong>Name:</strong></td><td style="border: none;">Mark The Zucc</td></tr>
+                <tr><td style="border: none;"><strong>Email:</strong></td><td style="border: none;">mark@example.com</td></tr>
+                <tr><td style="border: none;"><strong>Phone:</strong></td><td style="border: none;">+40732345678</td></tr>
+                <tr><td style="border: none;"><strong>Date of Birth:</strong></td><td style="border: none;">1990-07-22</td></tr>
+            </table>
+        </div>
+
+        <!-- Patient's Health Concern -->
+        <div class="section">
+            <h3 style="margin-top: 0;">❓ PATIENT'S HEALTH CONCERN</h3>
+            <p style="font-style: italic; color: #555; background-color: #fff; padding: 15px; border-radius: 5px;">"${mainConcern}"</p>
+        </div>
+
+        <!-- Chat History Summary -->
+        <div class="section">
+            <h3 style="margin-top: 0;">💬 CONVERSATION SUMMARY</h3>
+            <div style="background-color: white; padding: 15px; border-radius: 5px;">
+                ${chatSummary || '<p>No conversation history available.</p>'}
+            </div>
+        </div>
+
+        <!-- Patient Health Summary -->
+        <div class="section">
+            <h3 style="margin-top: 0;">📊 PATIENT HEALTH SUMMARY</h3>
+
+            <h4>💓 VITAL SIGNS</h4>
+            <table>
+                <tr><th>Measurement</th><th>Value</th></tr>
+                <tr><td>Blood Pressure</td><td>120/80</td></tr>
+                <tr><td>Pulse (bpm)</td><td>75</td></tr>
+                <tr><td>Oxygen (%)</td><td>98</td></tr>
+                <tr><td>Temperature (°C)</td><td>36.8</td></tr>
+            </table>
+
+            <h4>😴 SLEEP PATTERNS</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Hours</td><td>7 hours</td></tr>
+                <tr><td>Quality</td><td>Good</td></tr>
+                <tr><td>Night Wakings</td><td>1</td></tr>
+            </table>
+
+            <h4>🏃 PHYSICAL ACTIVITY</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Type</td><td>Running</td></tr>
+                <tr><td>Duration</td><td>30 minutes</td></tr>
+                <tr><td>Intensity</td><td>Moderate</td></tr>
+                <tr><td>Calories</td><td>300</td></tr>
+            </table>
+
+            <h4>🍽️ NUTRITION</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Meals</td><td>2</td></tr>
+                <tr><td>Liquids (ml)</td><td>1500</td></tr>
+                <tr><td>Calories</td><td>1800</td></tr>
+            </table>
+        </div>
+
+        <!-- Request Section -->
+        <div style="background-color: #d4edda; padding: 20px; border-radius: 5px; border-left: 4px solid #28a745;">
+            <h3 style="color: #155724; margin-top: 0;">✅ REQUEST</h3>
+            <p>This patient requires <strong>professional medical evaluation</strong> at your <strong>${clinic.category}</strong> facility based on the symptoms and health patterns identified. Please contact the patient directly to schedule an appointment at your earliest convenience.</p>
+
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                <h4 style="margin-top: 0;">Patient Contact:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li>📧 Email: mark@example.com</li>
+                    <li>📱 Phone: +40732345678</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p style="margin: 0;">This referral is sent via <strong>MedFlowAI</strong> health monitoring system to ensure timely medical intervention.</p>
+            <p style="margin: 10px 0 0 0; font-size: 12px;">Best regards,<br><strong>MedFlowAI Team</strong><br>📧 medflow@gmail.com</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        this.showEmailModal = true;
+    },
+
+    confirmAppointmentFromEmail() {
+        // Add to appointments list after viewing email
+        this.appointments.push({
+            id: Date.now(),
+            date: 'Pending',
+            time: 'To be confirmed',
+            clinic: this.selectedClinic.name,
+            status: 'pending',
+            chatContext: this.chatHistory.filter(m => m.role === 'user')[0]?.content || 'General consultation'
+        });
+
+        this.showEmailModal = false;
+        this.selectedClinic = null;
+
+        // Show success message
+        alert('Appointment request sent! The clinic will contact you soon.');
+    },
+
+    renderStars(rating) {
+        const fullStars = Math.floor(rating);
+        const hasHalf = rating % 1 >= 0.5;
+        let stars = '⭐'.repeat(fullStars);
+        if (hasHalf) stars += '⭐';
+        return stars;
+    },
+
+    viewAppointmentEmail(appointment) {
+        // Generate HTML email based on chat history and appointment
+        const chatSummary = this.chatHistory
+            .map(msg => '<p><strong>' + (msg.role === 'user' ? 'Patient' : 'AI') + ':</strong> ' + msg.content + '</p>')
+            .join('');
+
+        this.selectedAppointmentEmail = '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .section { margin-bottom: 30px; background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .section h3 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        .patient-info { background-color: #e8f4f8; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #3498db; color: white; }
+        .footer { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 style="margin: 0;">🏥 MedFlowAI - Appointment Request</h1>
+            <p style="margin: 5px 0 0 0;">Priority Medical Consultation Required</p>
+        </div>
+
+        <!-- Greeting -->
+        <div class="section">
+            <h2 style="margin-top: 0;">Dear ${appointment.clinic},</h2>
+            <p>MedFlowAI is forwarding a <strong>priority appointment request</strong> for a patient requiring professional medical consultation based on AI health analysis.</p>
+        </div>
+
+        <!-- Patient Contact Information -->
+        <div class="patient-info">
+            <h3 style="margin-top: 0;">📞 PATIENT CONTACT INFORMATION</h3>
+            <table style="border: none;">
+                <tr><td style="border: none;"><strong>Name:</strong></td><td style="border: none;">Mark The Zucc</td></tr>
+                <tr><td style="border: none;"><strong>Email:</strong></td><td style="border: none;">mark@example.com</td></tr>
+                <tr><td style="border: none;"><strong>Phone:</strong></td><td style="border: none;">+40732345678</td></tr>
+                <tr><td style="border: none;"><strong>Date of Birth:</strong></td><td style="border: none;">1990-07-22</td></tr>
+            </table>
+        </div>
+
+        <!-- Patient's Health Concern -->
+        <div class="section">
+            <h3 style="margin-top: 0;">❓ PATIENT'S HEALTH CONCERN</h3>
+            <p style="font-style: italic; color: #555; background-color: #fff; padding: 15px; border-radius: 5px;">"${appointment.chatContext || 'Patient seeking consultation based on health assessment'}"</p>
+        </div>
+
+        <!-- Chat History Summary -->
+        <div class="section">
+            <h3 style="margin-top: 0;">💬 CONVERSATION SUMMARY</h3>
+            <div style="background-color: white; padding: 15px; border-radius: 5px;">
+                ${chatSummary || '<p>No conversation history available.</p>'}
+            </div>
+        </div>
+
+        <!-- Patient Health Summary -->
+        <div class="section">
+            <h3 style="margin-top: 0;">📊 PATIENT HEALTH SUMMARY</h3>
+
+            <h4>💓 VITAL SIGNS</h4>
+            <table>
+                <tr><th>Measurement</th><th>Value</th></tr>
+                <tr><td>Blood Pressure</td><td>120/80</td></tr>
+                <tr><td>Pulse (bpm)</td><td>75</td></tr>
+                <tr><td>Oxygen (%)</td><td>98</td></tr>
+                <tr><td>Temperature (°C)</td><td>36.8</td></tr>
+            </table>
+
+            <h4>😴 SLEEP PATTERNS</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Hours</td><td>7 hours</td></tr>
+                <tr><td>Quality</td><td>Good</td></tr>
+                <tr><td>Night Wakings</td><td>1</td></tr>
+            </table>
+
+            <h4>🏃 PHYSICAL ACTIVITY</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Type</td><td>Running</td></tr>
+                <tr><td>Duration</td><td>30 minutes</td></tr>
+                <tr><td>Intensity</td><td>Moderate</td></tr>
+                <tr><td>Calories</td><td>300</td></tr>
+            </table>
+
+            <h4>🍽️ NUTRITION</h4>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Meals</td><td>2</td></tr>
+                <tr><td>Liquids (ml)</td><td>1500</td></tr>
+                <tr><td>Calories</td><td>1800</td></tr>
+            </table>
+        </div>
+
+        <!-- Request Section -->
+        <div style="background-color: #d4edda; padding: 20px; border-radius: 5px; border-left: 4px solid #28a745;">
+            <h3 style="color: #155724; margin-top: 0;">✅ REQUEST</h3>
+            <p>This patient requires <strong>professional medical evaluation</strong> based on the symptoms and health patterns identified. Please contact the patient directly to schedule an appointment at your earliest convenience.</p>
+
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                <h4 style="margin-top: 0;">Patient Contact:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li>📧 Email: mark@example.com</li>
+                    <li>📱 Phone: +40732345678</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p style="margin: 0;">This referral is sent via <strong>MedFlowAI</strong> health monitoring system to ensure timely medical intervention.</p>
+            <p style="margin: 10px 0 0 0; font-size: 12px;">Best regards,<br><strong>MedFlowAI Team</strong><br>📧 medflow@gmail.com</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        this.showEmailModal = true;
+    }
+}" class="space-y-6">
+
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-2xl font-bold text-gray-900">Schedule Appointment</h1>
+        <p class="text-gray-600 text-sm mt-1">Find the right specialist for you</p>
+    </div>
+
+    <!-- My Appointments -->
+    <div x-show="appointments.length > 0" class="bg-white rounded-2xl shadow-lg p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">My Appointments</h2>
+        <div class="space-y-3">
+            <template x-for="apt in appointments" :key="apt.id">
+                <div @click="viewAppointmentEmail(apt)"
+                     class="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition">
+                    <div>
+                        <p class="font-semibold text-gray-900" x-text="apt.clinic"></p>
+                        <p class="text-sm text-gray-600">
+                            <span x-text="apt.date"></span> at <span x-text="apt.time"></span>
+                        </p>
+                        <span class="inline-block mt-1 px-2 py-1 text-xs font-medium rounded-full"
+                              :class="apt.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
+                              x-text="apt.status"></span>
+                        <p class="text-xs text-blue-600 mt-1">Click to view email →</p>
+                    </div>
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Context Banner -->
+    <div x-show="detectedKeywords.length > 0"
+         class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+        <h3 class="text-lg font-bold mb-2">Based on your chat history</h3>
+        <p class="text-sm text-blue-100 mb-3">
+            We detected you mentioned:
+            <span class="font-semibold" x-text="detectedKeywords.join(', ')"></span>
+        </p>
+        <p class="text-sm">Here are the most suitable specialists for you:</p>
+    </div>
+
+    <!-- Recommended Clinics -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-900">
+                <span x-show="detectedKeywords.length > 0">Recommended Specialists</span>
+                <span x-show="detectedKeywords.length === 0">Top Rated Clinics</span>
+            </h2>
+            <button @click="showAll = !showAll"
+                    class="text-blue-600 text-sm font-medium hover:text-blue-700">
+                <span x-show="!showAll">Show All</span>
+                <span x-show="showAll">Show Less</span>
+            </button>
+        </div>
+
+        <!-- Clinic Cards -->
+        <template x-for="clinic in (showAll ? allClinics : recommendedClinics)" :key="clinic.id">
+            <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.name"></h3>
+                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.category"></p>
+
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span x-html="renderStars(clinic.rating)"></span>
+                            <span class="text-sm font-semibold text-gray-700" x-text="clinic.rating"></span>
+                            <span class="text-xs text-gray-500">(<span x-text="clinic.reviews"></span> reviews)</span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 text-xs text-gray-600">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span x-text="clinic.distance"></span>
+                            </div>
+                            <span x-text="clinic.address" class="truncate"></span>
+                        </div>
+                    </div>
+
+                    <div class="text-4xl ml-3">🏥</div>
+                </div>
+
+                <button @click="requestAppointment(clinic)"
+                        class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition flex items-center justify-center space-x-2">
+                    <span>Request Appointment</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Email Preview Modal -->
+    <div x-show="showEmailModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         @click.self="showEmailModal = false">
+
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+             @click.stop>
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                <h3 class="text-xl font-bold text-gray-900">📧 Appointment Request Email Preview</h3>
+                <button @click="showEmailModal = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-600">This is the HTML email that will be sent to the clinic with your health information and chat context.</p>
+                </div>
+
+                <!-- Email HTML Content -->
+                <div class="border border-gray-300 rounded-lg overflow-hidden">
+                    <iframe :srcdoc="selectedAppointmentEmail"
+                            class="w-full"
+                            style="height: 600px; border: none;"
+                            sandbox="allow-same-origin"></iframe>
+                </div>
+
+                <div class="mt-4 flex space-x-3">
+                    <button @click="showEmailModal = false"
+                            class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button @click="confirmAppointmentFromEmail()"
+                            class="flex-1 bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Send Request</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

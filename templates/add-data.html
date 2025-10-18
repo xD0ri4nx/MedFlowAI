@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Add Data - MedFlowAI{% endblock %}
+
+{% block content %}
+<div x-data="{
+    activeTab: 'consum',
+    showSuccess: false,
+    successMessage: '',
+
+    // Form data for each type
+    consumData: { mese: '', lichide_ml: '', calorii: '' },
+    somnData: { ore_somn: '', calitate: 'good', treziri: '' },
+    vitaleData: { tensiune: '', puls: '', oxigenare: '', temperatura: '' },
+    sportData: { tip: '', durata_minute: '', intensitate: 'moderate', calorii: '' },
+    medicamenteData: { descriere: '' },
+
+    aiInput: '',
+    aiPreview: null,
+
+    parseAIInput() {
+        if (!this.aiInput.trim()) return;
+
+        // Simulate AI parsing
+        const input = this.aiInput.toLowerCase();
+        let preview = {};
+
+        if (this.activeTab === 'consum') {
+            // Example parsing for food
+            preview = {
+                mese: 2,
+                lichide_ml: 1500,
+                calorii: 1800
+            };
+        } else if (this.activeTab === 'somn') {
+            preview = {
+                ore_somn: 7,
+                calitate: 'good',
+                treziri: 1
+            };
+        } else if (this.activeTab === 'vitale') {
+            preview = {
+                tensiune: '120/80',
+                puls: 75,
+                oxigenare: 98,
+                temperatura: 36.8
+            };
+        } else if (this.activeTab === 'sport') {
+            preview = {
+                tip: 'Running',
+                durata_minute: 30,
+                intensitate: 'moderate',
+                calorii: 300
+            };
+        }
+
+        this.aiPreview = preview;
+    },
+
+    confirmAIParsed() {
+        this.showSuccessMessage('Data added successfully via AI!');
+        this.aiInput = '';
+        this.aiPreview = null;
+    },
+
+    submitManualForm(type) {
+        this.showSuccessMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} data saved!`);
+
+        // Reset form
+        if (type === 'consum') {
+            this.consumData = { mese: '', lichide_ml: '', calorii: '' };
+        } else if (type === 'somn') {
+            this.somnData = { ore_somn: '', calitate: 'good', treziri: '' };
+        } else if (type === 'vitale') {
+            this.vitaleData = { tensiune: '', puls: '', oxigenare: '', temperatura: '' };
+        } else if (type === 'sport') {
+            this.sportData = { tip: '', durata_minute: '', intensitate: 'moderate', calorii: '' };
+        } else if (type === 'medicamente') {
+            this.medicamenteData = { descriere: '' };
+        }
+    },
+
+    showSuccessMessage(msg) {
+        this.successMessage = msg;
+        this.showSuccess = true;
+        setTimeout(() => {
+            this.showSuccess = false;
+        }, 3000);
+    }
+}" class="space-y-6">
+
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-2xl font-bold text-gray-900">Add Health Data</h1>
+        <p class="text-gray-600 text-sm mt-1">Track your daily health activities</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div x-show="showSuccess"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span x-text="successMessage"></span>
+        </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="bg-white rounded-2xl shadow-lg p-1">
+        <div class="flex space-x-1 overflow-x-auto">
+            <button @click="activeTab = 'consum'"
+                    :class="activeTab === 'consum' ? 'bg-orange-500 text-white' : 'text-gray-600 hover:bg-gray-100'"
+                    class="flex-1 py-2 px-3 rounded-xl transition text-xs font-medium whitespace-nowrap">
+                <span class="block">🍽️</span>
+                Food
+            </button>
+            <button @click="activeTab = 'somn'"
+                    :class="activeTab === 'somn' ? 'bg-purple-500 text-white' : 'text-gray-600 hover:bg-gray-100'"
+                    class="flex-1 py-2 px-3 rounded-xl transition text-xs font-medium whitespace-nowrap">
+                <span class="block">🌙</span>
+                Sleep
+            </button>
+            <button @click="activeTab = 'vitale'"
+                    :class="activeTab === 'vitale' ? 'bg-red-500 text-white' : 'text-gray-600 hover:bg-gray-100'"
+                    class="flex-1 py-2 px-3 rounded-xl transition text-xs font-medium whitespace-nowrap">
+                <span class="block">❤️</span>
+                Vitals
+            </button>
+            <button @click="activeTab = 'sport'"
+                    :class="activeTab === 'sport' ? 'bg-green-500 text-white' : 'text-gray-600 hover:bg-gray-100'"
+                    class="flex-1 py-2 px-3 rounded-xl transition text-xs font-medium whitespace-nowrap">
+                <span class="block">🏃</span>
+                Exercise
+            </button>
+            <button @click="activeTab = 'medicamente'"
+                    :class="activeTab === 'medicamente' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-100'"
+                    class="flex-1 py-2 px-3 rounded-xl transition text-xs font-medium whitespace-nowrap">
+                <span class="block">💊</span>
+                Medication
+            </button>
+        </div>
+    </div>
+
+    <!-- AI-Assisted Input (Common for all tabs) -->
+    <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Quick Add with AI</h3>
+        <p class="text-sm text-gray-600 mb-4">Describe what you want to add in your own words</p>
+
+        <textarea x-model="aiInput"
+                  placeholder="Example: I ate 2 meals today, drank 1.5L water, around 1800 calories"
+                  rows="3"
+                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"></textarea>
+
+        <button @click="parseAIInput()"
+                :disabled="!aiInput.trim()"
+                class="mt-3 w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            Parse & Preview
+        </button>
+
+        <!-- AI Preview -->
+        <div x-show="aiPreview"
+             x-transition
+             class="mt-4 bg-white rounded-lg p-4 border-2 border-blue-200">
+            <h4 class="font-semibold text-gray-900 mb-2">Parsed Data Preview:</h4>
+            <pre class="text-xs bg-gray-50 p-3 rounded overflow-x-auto" x-text="JSON.stringify(aiPreview, null, 2)"></pre>
+            <button @click="confirmAIParsed()"
+                    class="mt-3 w-full bg-green-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-green-600 transition">
+                ✓ Confirm & Save
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Forms -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 tab-content">
+        <!-- Consum Form -->
+        <div x-show="activeTab === 'consum'" class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">🍽️ Nutrition & Hydration</h3>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Number of Meals</label>
+                <input x-model="consumData.mese" type="number" placeholder="2"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Liquids (ml)</label>
+                <input x-model="consumData.lichide_ml" type="number" placeholder="1500"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Calories</label>
+                <input x-model="consumData.calorii" type="number" placeholder="1800"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+
+            <button @click="submitManualForm('consum')"
+                    class="w-full bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 transition">
+                Save Nutrition Data
+            </button>
+        </div>
+
+        <!-- Somn Form -->
+        <div x-show="activeTab === 'somn'" class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">🌙 Sleep Tracking</h3>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Hours Slept</label>
+                <input x-model="somnData.ore_somn" type="number" step="0.5" placeholder="7"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sleep Quality</label>
+                <select x-model="somnData.calitate"
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                    <option value="very poor">Very Poor</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Night Wakings</label>
+                <input x-model="somnData.treziri" type="number" placeholder="1"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+
+            <button @click="submitManualForm('somn')"
+                    class="w-full bg-purple-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-600 transition">
+                Save Sleep Data
+            </button>
+        </div>
+
+        <!-- Vitale Form -->
+        <div x-show="activeTab === 'vitale'" class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">❤️ Vital Signs</h3>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Blood Pressure</label>
+                <input x-model="vitaleData.tensiune" type="text" placeholder="120/80"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pulse (bpm)</label>
+                <input x-model="vitaleData.puls" type="number" placeholder="75"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Oxygen Saturation (%)</label>
+                <input x-model="vitaleData.oxigenare" type="number" placeholder="98"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Temperature (°C)</label>
+                <input x-model="vitaleData.temperatura" type="number" step="0.1" placeholder="36.8"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent">
+            </div>
+
+            <button @click="submitManualForm('vitale')"
+                    class="w-full bg-red-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-600 transition">
+                Save Vital Signs
+            </button>
+        </div>
+
+        <!-- Sport Form -->
+        <div x-show="activeTab === 'sport'" class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">🏃 Physical Activity</h3>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Activity Type</label>
+                <input x-model="sportData.tip" type="text" placeholder="Running, Cycling, Gym..."
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                <input x-model="sportData.durata_minute" type="number" placeholder="30"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Intensity</label>
+                <select x-model="sportData.intensitate"
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <option value="light">Light</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="intense">Intense</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Calories Burned</label>
+                <input x-model="sportData.calorii" type="number" placeholder="300"
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            </div>
+
+            <button @click="submitManualForm('sport')"
+                    class="w-full bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition">
+                Save Activity Data
+            </button>
+        </div>
+
+        <!-- Medicamente Form -->
+        <div x-show="activeTab === 'medicamente'" class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">💊 Medication</h3>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea x-model="medicamenteData.descriere"
+                          rows="4"
+                          placeholder="Example: Aspirin 500mg, taken at 8:00 AM"
+                          class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+
+            <button @click="submitManualForm('medicamente')"
+                    class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition">
+                Save Medication
+            </button>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

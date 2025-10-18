@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Home - MedFlowAI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .progress-circle {
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+
+    .progress-ring-circle {
+        transition: stroke-dashoffset 1s ease-in-out;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .stat-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="{
+    score: 75,
+    status: 'Crushing it!',
+    color: '#8B5CF6',
+    showFeedback: false,
+    feedback: '',
+
+    getColorForScore(score) {
+        if (score >= 80) return '#10B981'; // green
+        if (score >= 50) return '#8B5CF6'; // purple
+        return '#EF4444'; // red
+    },
+
+    getStatusForScore(score) {
+        if (score >= 80) return 'Crushing it!';
+        if (score >= 50) return 'Keep going!';
+        return 'Need some care';
+    },
+
+    generateFeedback() {
+        this.showFeedback = true;
+        // Simulate API call
+        setTimeout(() => {
+            this.feedback = `Based on your health data for today, you're doing great! Your sleep quality is good (7 hours), vital signs are within normal range, and you've been staying active. Keep maintaining this healthy routine. Consider increasing your water intake slightly to reach 2L per day for optimal hydration.`;
+        }, 1000);
+    }
+}" x-init="
+    color = getColorForScore(score);
+    status = getStatusForScore(score);
+" class="space-y-6">
+
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900">MedFlowAI</h1>
+        <p class="text-gray-600 mt-1">Welcome back, Mark!</p>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div>
+            <h2 class="text-gray-600 text-sm font-medium mb-2">Logging Progress</h2>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4" x-text="status"></h3>
+
+            <!-- Horizontal Progress Bar -->
+            <div class="relative">
+                <!-- Background bar -->
+                <div class="w-full h-8 bg-gray-200 rounded-full overflow-hidden">
+                    <!-- Progress fill -->
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                         :style="`width: ${score}%; background-color: ${color}`">
+                        <span class="text-white text-sm font-bold" x-text="score + '%'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-gray-500 text-sm mt-3 text-center">Your health score today</p>
+        </div>
+    </div>
+
+    <!-- Today's Summary -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">You've logged today</h3>
+
+        <div class="space-y-3">
+            <!-- Meals -->
+            <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Nutrition</p>
+                        <p class="text-xs text-gray-500">2 meals, 46g protein</p>
+                    </div>
+                </div>
+                <span class="text-2xl">🍽️</span>
+            </div>
+
+            <!-- Sleep -->
+            <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Sleep</p>
+                        <p class="text-xs text-gray-500">7 hours, good quality</p>
+                    </div>
+                </div>
+                <span class="text-2xl">😴</span>
+            </div>
+
+            <!-- Vitals -->
+            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Vitals</p>
+                        <p class="text-xs text-gray-500">BP: 120/80, O2: 98%</p>
+                    </div>
+                </div>
+                <span class="text-2xl">❤️</span>
+            </div>
+
+            <!-- Activity -->
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Activity</p>
+                        <p class="text-xs text-gray-500">30 min running, 300 cal</p>
+                    </div>
+                </div>
+                <span class="text-2xl">🏃</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Get Status Button -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+        <h3 class="text-lg font-bold mb-2">Want detailed feedback?</h3>
+        <p class="text-sm text-blue-100 mb-4">Get AI-powered health insights based on your today's data</p>
+
+        <button @click="generateFeedback()"
+                :disabled="showFeedback && !feedback"
+                class="w-full bg-white text-blue-600 font-semibold py-3 px-6 rounded-lg hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+            <span x-show="!showFeedback">Get Your Status</span>
+            <span x-show="showFeedback && !feedback" class="flex items-center space-x-2">
+                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Analyzing...</span>
+            </span>
+            <span x-show="showFeedback && feedback">✓ View Feedback</span>
+        </button>
+    </div>
+
+    <!-- Feedback Card -->
+    <div x-show="showFeedback && feedback"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-lg font-bold text-gray-900 mb-2">AI Health Feedback</h4>
+                <p class="text-gray-700 text-sm leading-relaxed" x-text="feedback"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-2 gap-4">
+        <a href="/chat" class="stat-card bg-white rounded-xl shadow p-4 text-center hover:shadow-lg transition">
+            <div class="text-3xl mb-2">💬</div>
+            <p class="text-sm font-semibold text-gray-700">Chat with AI</p>
+        </a>
+        <a href="/add-data" class="stat-card bg-white rounded-xl shadow p-4 text-center hover:shadow-lg transition">
+            <div class="text-3xl mb-2">➕</div>
+            <p class="text-sm font-semibold text-gray-700">Add Data</p>
+        </a>
+    </div>
+
+</div>
+{% endblock %}

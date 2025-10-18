@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - MedFlowAI{% endblock %}
+
+{% block content %}
+<div x-data="{
+    messages: [],
+    input: '',
+    isLoading: false,
+
+    init() {
+        // Load chat history from localStorage
+        const stored = localStorage.getItem('chatHistory');
+        this.messages = stored ? JSON.parse(stored) : [
+            { role: 'assistant', content: 'Hello! I\'m your health assistant. How can I help you today?', timestamp: Date.now() }
+        ];
+        this.$nextTick(() => this.scrollToBottom());
+    },
+
+    sendMessage() {
+        if (!this.input.trim()) return;
+
+        // Add user message
+        const userMessage = {
+            role: 'user',
+            content: this.input,
+            timestamp: Date.now()
+        };
+        this.messages.push(userMessage);
+        this.input = '';
+
+        // Save to localStorage
+        this.saveMessages();
+        this.scrollToBottom();
+
+        // Simulate AI response
+        this.isLoading = true;
+        setTimeout(() => {
+            const aiResponse = this.generateMockResponse(userMessage.content);
+            this.messages.push({
+                role: 'assistant',
+                content: aiResponse,
+                timestamp: Date.now()
+            });
+            this.isLoading = false;
+            this.saveMessages();
+            this.scrollToBottom();
+        }, 1000 + Math.random() * 1000);
+    },
+
+    generateMockResponse(userInput) {
+        const input = userInput.toLowerCase();
+
+        if (input.includes('headache') || input.includes('head')) {
+            return 'I understand you\'re experiencing headaches. This could be related to several factors like stress, sleep, dehydration, or other health conditions. Have you noticed any triggers? I recommend scheduling an appointment with a neurologist for proper evaluation. Would you like me to help you find a specialist?';
+        }
+        else if (input.includes('sleep') || input.includes('tired') || input.includes('fatigue')) {
+            return 'Sleep issues can significantly impact your health. Based on your recent logs, you\'ve been sleeping about 7 hours which is good. However, if you\'re feeling tired, we should look into sleep quality. Try maintaining a consistent sleep schedule and avoiding screens before bed. Would you like to log your sleep patterns?';
+        }
+        else if (input.includes('eat') || input.includes('food') || input.includes('meal')) {
+            return 'Nutrition is crucial for your health! I can help you track your meals and calories. Would you like to add what you ate today? Just describe your meal in natural language and I\'ll help you log it.';
+        }
+        else if (input.includes('exercise') || input.includes('workout') || input.includes('sport')) {
+            return 'Great that you\'re thinking about physical activity! Regular exercise improves both physical and mental health. What type of activity are you interested in, or would you like to log a workout you\'ve completed?';
+        }
+        else if (input.includes('schedule') || input.includes('appointment') || input.includes('doctor')) {
+            return 'I can help you schedule an appointment! Based on your health concerns, I\'ll recommend the most suitable specialists. Would you like to see available doctors and clinics?';
+        }
+        else {
+            return 'I\'m here to help with your health concerns. You can ask me about symptoms, log your health data (meals, sleep, vitals, exercise), or schedule appointments with specialists. What would you like to do?';
+        }
+    },
+
+    saveMessages() {
+        localStorage.setItem('chatHistory', JSON.stringify(this.messages));
+    },
+
+    scrollToBottom() {
+        this.$nextTick(() => {
+            const container = this.$refs.messagesContainer;
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+    },
+
+    clearChat() {
+        if (confirm('Are you sure you want to clear the chat history?')) {
+            this.messages = [
+                { role: 'assistant', content: 'Hello! I\'m your health assistant. How can I help you today?', timestamp: Date.now() }
+            ];
+            this.saveMessages();
+        }
+    },
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+}">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-3">
+        <h1 class="text-2xl font-bold text-gray-900">Health Chat</h1>
+        <button @click="clearChat()"
+                class="text-gray-500 hover:text-red-600 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Messages Container -->
+    <div x-ref="messagesContainer"
+         style="height: calc(100vh - 240px); margin-bottom: 0;"
+         class="overflow-y-auto space-y-4 bg-gray-50 rounded-2xl p-4">
+
+        <template x-for="(message, index) in messages" :key="index">
+            <div :class="message.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                <div :class="{
+                    'bg-blue-500 text-white': message.role === 'user',
+                    'bg-white text-gray-800 border border-gray-200': message.role === 'assistant'
+                }" class="max-w-[80%] rounded-2xl px-4 py-3 shadow-sm">
+                    <p class="text-sm leading-relaxed" x-text="message.content"></p>
+                    <p class="text-xs mt-1 opacity-70" x-text="formatTime(message.timestamp)"></p>
+                </div>
+            </div>
+        </template>
+
+        <!-- Loading indicator -->
+        <div x-show="isLoading" class="flex justify-start">
+            <div class="bg-white text-gray-800 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
+                <div class="flex space-x-2">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Area - Fixed to bottom -->
+    <div class="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-3">
+        <div class="max-w-md mx-auto px-4">
+            <form @submit.prevent="sendMessage()" class="flex items-end space-x-2">
+                <textarea x-ref="inputField"
+                          x-model="input"
+                          @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
+                          placeholder="Type your message..."
+                          rows="1"
+                          class="flex-1 resize-none border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2 rounded-xl bg-white transition"
+                          style="max-height: 100px"></textarea>
+
+                <button type="submit"
+                        :disabled="!input.trim() || isLoading"
+                        class="flex-shrink-0 bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
