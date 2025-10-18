@@ -337,6 +337,117 @@ Răspunde DOAR cu rezumatul, fără alte cuvinte."""
         raise HTTPException(status_code=500, detail=f"Failed to generate alert: {str(e)}")
 
 
+@app.post("/api/v1/ai_parse")
+async def ai_parse_health_data(request: Request):
+    """
+    Parse natural language health input using AI.
+    
+    Body:
+        - text: Natural language description
+        - category: One of 'consum', 'somn', 'vitale', 'sport', 'medicamente'
+    """
+    try:
+        body = await request.json()
+        text = body.get("text", "").strip()
+        category = body.get("category", "consum")
+        
+        if not text:
+            raise HTTPException(status_code=400, detail="Text input required")
+        
+        # Define expected fields for each category
+        schema_map = {
+            "consum": {"mese": "int", "lichide_ml": "int", "calorii": "int"},
+            "somn": {"ore_somn": "float", "calitate": "string", "treziri": "int"},
+            "vitale": {"tensiune": "string (format: 120/80)", "puls": "int", "oxigenare": "int", "temperatura": "float"},
+            "sport": {"tip": "string", "durata_minute": "int", "intensitate": "string", "calorii": "int"},
+            "medicamente": {"descriere": "string"}
+        }
+        
+        schema = schema_map.get(category, {})
+        schema_str = "\n".join([f"- {k}: {v}" for k, v in schema.items()])
+        
+        prompt = f"""Extrage informații din următorul text și returnează un JSON valid:
+
+Text: "{text}"
+
+Categorie: {category}
+
+Structură JSON necesară:
+{schema_str}
+
+Reguli:
+- Returnează DOAR JSON, fără text suplimentar
+- Folosește valori rezonabile dacă lipsesc informații
+- Pentru calitate somn: "foarte bun", "bun", "mediu", "slab", "foarte slab"
+- Pentru intensitate sport: "ușoară", "moderată", "intensă"
+
+Exemplu răspuns pentru consum:
+{{"mese": 2, "lichide_ml": 1500, "calorii": 1800}}"""
+
+        response = get_llm_response(
+            prompt=prompt,
+            system_message="Ești un parser de date medicale. Returnezi DOAR JSON valid, fără explicații.",
+            temperature=0.3,
+            max_tokens=200
+        )
+        
+        # Parse JSON from response
+        import json
+        import re
+        
+        # Extract JSON from response
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            parsed_data = json.loads(json_match.group())
+            return {"success": True, "data": parsed_data, "category": category}
+        else:
+            raise ValueError("No valid JSON found in response")
+    
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse input: {str(e)}")
+
+
+@app.post("/api/v1/add_health_data")
+async def add_health_data(request: Request):
+    """
+    Add health data to Supabase general table.
+    
+    Body:
+        - category: One of 'consum', 'somn', 'vitale', 'sport', 'medicamente'
+        - data: Dictionary with category-specific fields
+        - user_id: UUID (default: hardcoded for now)
+    """
+    try:
+        body = await request.json()
+        category = body.get("category")
+        data = body.get("data")
+        user_id = body.get("user_id", "70b8c710-b86e-4307-ab97-fbb95a4c66d9")
+        
+        if not category or not data:
+            raise HTTPException(status_code=400, detail="Category and data required")
+        
+        if category not in ["consum", "somn", "vitale", "sport", "medicamente"]:
+            raise HTTPException(status_code=400, detail="Invalid category")
+        
+        # Insert into Supabase general table
+        from datetime import date
+        import json
+        
+        result = supabase_service.client.table("general").insert({
+            "user_id": user_id,
+            "data": str(date.today()),
+            "details": json.dumps(data),  # Store as JSON string
+            "type": category
+        }).execute()
+        
+        return {"success": True, "message": f"{category.capitalize()} data added successfully", "data": result.data}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add data: {str(e)}")
+
+
 @app.post("/gen_alert", response_model=GenerateAlertResponse)
 async def generate_alert(request: Request, user_id: Optional[str] = Form(None), target_date: Optional[str] = Form(None)):
     """
