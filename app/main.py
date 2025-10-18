@@ -62,11 +62,15 @@ class GenerateAlertResponse(BaseModel):
     success: bool = Field(..., description="Whether the request was successful")
 
 
+
 app = FastAPI(
     title="MedFlowAI",
     description="Medical AI Flow Management System",
     version="1.0.0"
 )
+
+# Mount static files for assets (images, etc.)
+app.mount("/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
 
 # CORS middleware
 app.add_middleware(
