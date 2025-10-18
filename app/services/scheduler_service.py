@@ -99,7 +99,7 @@ Răspunde în limba română, profesional dar accesibil."""
 
         system_message = """Ești un asistent medical AI specializat în analiza datelor de sănătate. 
 Analizezi date zilnice și oferi feedback constructiv și recomandări personalizate.
-Răspunzi în limba română, concis și la obiect."""
+Răspunzi în limba română, concis in (MAXIMUM 3 PROPOZITII!!!!!!!!!!) și la obiect."""
 
         # Get LLM feedback
         feedback = get_llm_response(

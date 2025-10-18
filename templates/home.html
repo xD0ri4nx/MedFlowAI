@@ -31,11 +31,47 @@
 
 {% block content %}
 <div x-data="{
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
     score: 75,
-    status: 'Crushing it!',
+    status: 'Loading...',
     color: '#8B5CF6',
     showFeedback: false,
     feedback: '',
+    summary: null,
+    briefSummaries: {},
+    loading: true,
+    error: null,
+
+    async loadHealthData() {
+        try {
+            this.loading = true;
+            const response = await fetch(`/api/v1/generate_alert?user_id=${this.userId}`);
+            if (!response.ok) throw new Error('Failed to load health data');
+            
+            const data = await response.json();
+            this.summary = data.summary;
+            this.feedback = data.feedback;
+            this.briefSummaries = data.brief_summaries || {};
+            
+            // Calculate score based on data availability
+            const totalRecords = data.summary?.total_records || 0;
+            if (totalRecords >= 4) this.score = 85;
+            else if (totalRecords >= 2) this.score = 65;
+            else this.score = 30;
+            
+            this.color = this.getColorForScore(this.score);
+            this.status = this.getStatusForScore(this.score);
+            this.loading = false;
+        } catch (err) {
+            this.error = err.message;
+            this.loading = false;
+            this.status = 'Error loading data';
+        }
+    },
+
+    getSummaryText(category) {
+        return this.briefSummaries[category] || 'No data logged';
+    },
 
     getColorForScore(score) {
         if (score >= 80) return '#10B981'; // green
@@ -49,17 +85,24 @@
         return 'Need some care';
     },
 
-    generateFeedback() {
-        this.showFeedback = true;
-        // Simulate API call
-        setTimeout(() => {
-            this.feedback = `Based on your health data for today, you're doing great! Your sleep quality is good (7 hours), vital signs are within normal range, and you've been staying active. Keep maintaining this healthy routine. Consider increasing your water intake slightly to reach 2L per day for optimal hydration.`;
-        }, 1000);
+    async generateFeedback() {
+        if (this.feedback) {
+            this.showFeedback = true;
+            return;
+        }
+        
+        try {
+            this.showFeedback = true;
+            const response = await fetch(`/api/v1/generate_alert?user_id=${this.userId}`);
+            if (!response.ok) throw new Error('Failed to generate feedback');
+            
+            const data = await response.json();
+            this.feedback = data.feedback;
+        } catch (err) {
+            this.feedback = 'Error: ' + err.message;
+        }
     }
-}" x-init="
-    color = getColorForScore(score);
-    status = getStatusForScore(score);
-" class="space-y-6">
+}" x-init="await loadHealthData()" class="space-y-6">
 
     <!-- Logo and Header -->
     <div class="text-center">
@@ -93,7 +136,15 @@
     <div class="bg-white rounded-2xl shadow-lg p-6">
         <h3 class="text-lg font-bold text-gray-900 mb-4">You've logged today</h3>
 
-        <div class="space-y-3">
+        <div x-show="loading" class="text-center py-4">
+            <svg class="animate-spin h-8 w-8 mx-auto text-purple-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-500 mt-2">Loading your health data...</p>
+        </div>
+
+        <div x-show="!loading" class="space-y-3">
             <!-- Meals -->
             <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                 <div class="flex items-center space-x-3">
@@ -104,7 +155,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Nutrition</p>
-                        <p class="text-xs text-gray-500">2 meals, 46g protein</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('consum')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">🍽️</span>
@@ -120,7 +171,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Sleep</p>
-                        <p class="text-xs text-gray-500">7 hours, good quality</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('somn')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">😴</span>
@@ -136,7 +187,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Vitals</p>
-                        <p class="text-xs text-gray-500">BP: 120/80, O2: 98%</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('vitale')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">❤️</span>
@@ -152,7 +203,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Activity</p>
-                        <p class="text-xs text-gray-500">30 min running, 300 cal</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('sport')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">🏃</span>

@@ -264,6 +264,79 @@ Bazându-te pe datele de sănătate de mai sus, oferă un răspuns scurt și per
         )
 
 
+@app.get("/api/v1/generate_alert")
+async def api_generate_alert(user_id: str, target_date: Optional[str] = None):
+    """
+    API endpoint to generate health alert for a user.
+    
+    Query params:
+        - user_id: UUID of the user
+        - target_date: Optional date (YYYY-MM-DD), defaults to today
+    """
+    try:
+        from app.services.scheduler_service import generate_alert_for_user
+        from datetime import date
+        
+        # Parse target date
+        if target_date:
+            try:
+                parsed_date = date.fromisoformat(target_date)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            parsed_date = None
+        
+        # Call the scheduler service function
+        result = await generate_alert_for_user(user_id, parsed_date)
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=404, detail=result.get("error", "Failed to generate alert"))
+        
+        # Generate brief summaries for each category using LLM
+        summary = result.get("summary", {})
+        brief_summaries = {}
+        
+        for category in ["consum", "somn", "vitale", "sport"]:
+            data = summary.get(category, [])
+            if data and len(data) > 0:
+                # Create a brief prompt for each category
+                details_str = "\n".join([f"- {item.get('details', {})}" for item in data[:3]])  # Limit to first 3 records
+                
+                category_names = {
+                    "consum": "Nutriție",
+                    "somn": "Somn", 
+                    "vitale": "Semne vitale",
+                    "sport": "Activitate fizică"
+                }
+                
+                prompt = f"""Rezumă foarte scurt aceste date de {category_names[category]} în maximum 6-8 cuvinte în limba română:
+{details_str}
+
+Exemplu răspuns: "2 mese, 1.5L apă" sau "7h somn bun" sau "BP: 120/80, HR: 72" sau "30min alergare"
+Răspunde DOAR cu rezumatul, fără alte cuvinte."""
+
+                try:
+                    brief_summary = get_llm_response(
+                        prompt=prompt,
+                        system_message="Ești un asistent care rezumă date medicale foarte concis.",
+                        temperature=0.3,
+                        max_tokens=30
+                    ).strip()
+                    brief_summaries[category] = brief_summary
+                except:
+                    brief_summaries[category] = f"{len(data)} înregistrări"
+            else:
+                brief_summaries[category] = "Fără date"
+        
+        result["brief_summaries"] = brief_summaries
+        return result
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate alert: {str(e)}")
+
+
 @app.post("/gen_alert", response_model=GenerateAlertResponse)
 async def generate_alert(request: Request, user_id: Optional[str] = Form(None), target_date: Optional[str] = Form(None)):
     """
