@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     # Server
     HOST: str
     PORT: int
-
+    SUPABASE_URL: str
+    SUPABASE_API_KEY: str
     # CORS
     ALLOWED_ORIGINS: List[str]
 
