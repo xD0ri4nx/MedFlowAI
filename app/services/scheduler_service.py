@@ -14,18 +14,18 @@ logger = logging.getLogger(__name__)
 def _format_data_section(data_list: List) -> str:
     """Helper function to format data section for LLM prompt"""
     if not data_list:
-        return "- Nu există date înregistrate"
+        return "- No data recorded"
     
     formatted = []
     for idx, item in enumerate(data_list, 1):
         details = item.get("details", {})
         if isinstance(details, dict):
             details_str = ", ".join([f"{k}: {v}" for k, v in details.items()])
-            formatted.append(f"  Înregistrare {idx}: {details_str}")
+            formatted.append(f"  Record {idx}: {details_str}")
         else:
-            formatted.append(f"  Înregistrare {idx}: {details}")
+            formatted.append(f"  Record {idx}: {details}")
     
-    return "\n".join(formatted) if formatted else "- Nu există date înregistrate"
+    return "\n".join(formatted) if formatted else "- No data recorded"
 
 
 async def generate_alert_for_user(user_id: str, target_date: date = None) -> dict:
@@ -62,73 +62,73 @@ async def generate_alert_for_user(user_id: str, target_date: date = None) -> dic
                 "user_id": user_id,
                 "date": str(target_date),
                 "success": True,
-                "feedback": "Nu există date înregistrate pentru această zi."
+                "feedback": "No data recorded for this day."
             }
         
         # Create prompt for LLM
-        user_name = summary.get("profile", {}).get("full_name", "Utilizator")
+        user_name = summary.get("profile", {}).get("full_name", "User")
         
-        prompt = f"""Analizează datele medicale zilnice pentru {user_name} din data de {target_date}:
+        prompt = f"""Analyze the daily medical data for {user_name} from {target_date}:
 
-PROFIL PACIENT:
-- Nume: {user_name}
-- Data nașterii: {summary.get("profile", {}).get("date_of_birth", "N/A")}
+PATIENT PROFILE:
+- Name: {user_name}
+- Date of birth: {summary.get("profile", {}).get("date_of_birth", "N/A")}
 
-DATE ZILNICE ({target_date}):
+DAILY DATA ({target_date}):
 
-CONSUM (mese și lichide):
+NUTRITION (meals and liquids):
 {_format_data_section(summary.get("consum", []))}
 
-SOMN:
+SLEEP:
 {_format_data_section(summary.get("somn", []))}
 
-VITALE (tensiune, puls, oxigenare):
+VITALS (blood pressure, pulse, oxygen):
 {_format_data_section(summary.get("vitale", []))}
 
-SPORT (activitate fizică):
+EXERCISE (physical activity):
 {_format_data_section(summary.get("sport", []))}
 
 ---
 
-Oferă un feedback FOARTE SCURT (maxim 2-3 fraze!) cu:
-- O evaluare generală rapid (1 frază)
-- 2-3 recomandări principale (foarte concise)
+Provide VERY SHORT feedback (max 2-3 sentences!):
+- Quick overall assessment (1 sentence)
+- 2-3 main recommendations (very concise)
 
-IMPORTANT: Formatează răspunsul folosind Markdown:
-- Folosește **bold** pentru cuvinte cheie
-- Folosește bullet points (•) pentru recomandări
-- NU folosi titluri de secțiuni
-- Păstrează totul FOARTE SCURT - maximum 3-4 rânduri în total!
+IMPORTANT: Format response using Markdown:
+- Use **bold** for key words
+- Use bullet points (•) for recommendations
+- DO NOT use section titles
+- Keep VERY SHORT - maximum 3-4 lines total!
 
-Răspunde în limba română, foarte concis."""
+Respond in English, very concise."""
 
-        score_prompt = f"""Bazat pe datele medicale de mai sus pentru {user_name}, evaluează starea de sănătate generală cu un scor între 0-100:
+        score_prompt = f"""Based on the medical data above for {user_name}, evaluate overall health status with a score between 0-100:
 
-FII CRITIC ȘI REALIST! NU da scoruri mari dacă datele nu sunt complete sau optime.
+BE CRITICAL AND REALISTIC! DO NOT give high scores if data is incomplete or not optimal.
 
-- 0-20: Critic (lipsesc majoritatea datelor sau valori foarte anormale)
-- 21-40: Preocupant (date incomplete, multiple probleme)
-- 41-60: Mediu (date parțiale, valori suboptime, necesită îmbunătățiri)
-- 61-75: Acceptabil (date relativ complete, dar cu lacune)
-- 76-85: Bun (date complete, majoritatea valorilor în limite normale)
-- 86-95: Foarte bun (date complete, valori optime, stil de viață sănătos)
-- 96-100: Excelent (date perfecte, toate categoriile cu valori ideale)
+- 0-20: Critical (most data missing or very abnormal values)
+- 21-40: Concerning (incomplete data, multiple problems)
+- 41-60: Medium (partial data, suboptimal values, needs improvement)
+- 61-75: Acceptable (relatively complete data, but with gaps)
+- 76-85: Good (complete data, most values in normal ranges)
+- 86-95: Very good (complete data, optimal values, healthy lifestyle)
+- 96-100: Excellent (perfect data, all categories with ideal values)
 
-CRITERII STRICTE:
-- Lipsește o categorie întreagă (consum/somn/vitale/sport)? Scor maxim 60
-- Somn sub 6h sau peste 10h? Penalizare -15 puncte
-- Vitale anormale (tensiune >140/90 sau <100/60, puls >100 sau <50)? Penalizare -20 puncte
-- Fără activitate fizică? Penalizare -15 puncte
-- Hidratare sub 1.5L? Penalizare -10 puncte
-- Mai puțin de 2 mese pe zi? Penalizare -10 puncte
+STRICT CRITERIA:
+- Missing entire category (nutrition/sleep/vitals/exercise)? Max score 60
+- Sleep under 6h or over 10h? Penalty -15 points
+- Abnormal vitals (BP >140/90 or <100/60, pulse >100 or <50)? Penalty -20 points
+- No physical activity? Penalty -15 points
+- Hydration under 1.5L? Penalty -10 points
+- Less than 2 meals per day? Penalty -10 points
 
-Începe cu 50 puncte de bază și ajustează în sus/jos bazat pe calitatea datelor.
+Start with 50 base points and adjust up/down based on data quality.
 
-Răspunde DOAR cu numărul (de ex: 45). Nimic altceva!"""
+Respond ONLY with the number (e.g., 45). Nothing else!"""
 
-        system_message = """Ești un asistent medical AI specializat în analiza datelor de sănătate. 
-Răspunzi în limba română EXTREM DE CONCIS - maximum 2-3 fraze în total.
-Folosește Markdown pentru formatare (bold și bullet points), fără titluri."""
+        system_message = """You are a medical AI assistant specialized in health data analysis. 
+Respond in English EXTREMELY CONCISE - maximum 2-3 sentences total.
+Use Markdown for formatting (bold and bullet points), no titles."""
 
         # Get LLM feedback
         feedback = get_llm_response(
@@ -141,7 +141,7 @@ Folosește Markdown pentru formatare (bold și bullet points), fără titluri.""
         # Get health score
         health_score = get_llm_response(
             prompt=score_prompt,
-            system_message="Ești un evaluator medical. Răspunde DOAR cu un număr între 0-100.",
+            system_message="You are a medical evaluator. Respond ONLY with a number between 0-100.",
             temperature=0.3,
             max_tokens=10
         )

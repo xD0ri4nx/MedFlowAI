@@ -303,30 +303,30 @@ async def api_generate_alert(user_id: str, target_date: Optional[str] = None):
                 details_str = "\n".join([f"- {item.get('details', {})}" for item in data[:3]])  # Limit to first 3 records
                 
                 category_names = {
-                    "consum": "Nutriție",
-                    "somn": "Somn", 
-                    "vitale": "Semne vitale",
-                    "sport": "Activitate fizică"
+                    "consum": "Nutrition",
+                    "somn": "Sleep", 
+                    "vitale": "Vitals",
+                    "sport": "Activity"
                 }
                 
-                prompt = f"""Rezumă foarte scurt aceste date de {category_names[category]} în maximum 6-8 cuvinte în limba română:
+                prompt = f"""Summarize this {category_names[category]} data very briefly in maximum 6-8 words in English:
 {details_str}
 
-Exemplu răspuns: "2 mese, 1.5L apă" sau "7h somn bun" sau "BP: 120/80, HR: 72" sau "30min alergare"
-Răspunde DOAR cu rezumatul, fără alte cuvinte."""
+Example responses: "2 meals, 1.5L water" or "7h good sleep" or "BP: 120/80, HR: 72" or "30min running"
+Respond ONLY with the summary, no other words."""
 
                 try:
                     brief_summary = get_llm_response(
                         prompt=prompt,
-                        system_message="Ești un asistent care rezumă date medicale foarte concis.",
+                        system_message="You are an assistant that summarizes medical data very concisely.",
                         temperature=0.3,
                         max_tokens=30
                     ).strip()
                     brief_summaries[category] = brief_summary
                 except:
-                    brief_summaries[category] = f"{len(data)} înregistrări"
+                    brief_summaries[category] = f"{len(data)} records"
             else:
-                brief_summaries[category] = "Fără date"
+                brief_summaries[category] = "No data"
         
         result["brief_summaries"] = brief_summaries
         return result
