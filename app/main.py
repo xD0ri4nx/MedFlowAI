@@ -80,8 +80,32 @@ app.add_middleware(
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    """Root endpoint - serves the main HTML page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    """Root endpoint - redirects to home"""
+    return templates.TemplateResponse("home.html", {"request": request})
+
+
+@app.get("/home", response_class=HTMLResponse)
+async def home_page(request: Request):
+    """Home page with health status dashboard"""
+    return templates.TemplateResponse("home.html", {"request": request})
+
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """Chat page for AI health assistant"""
+    return templates.TemplateResponse("chat.html", {"request": request})
+
+
+@app.get("/add-data", response_class=HTMLResponse)
+async def add_data_page(request: Request):
+    """Add health data page"""
+    return templates.TemplateResponse("add-data.html", {"request": request})
+
+
+@app.get("/schedule", response_class=HTMLResponse)
+async def schedule_page(request: Request):
+    """Schedule appointment page"""
+    return templates.TemplateResponse("schedule.html", {"request": request})
 
 
 @app.get("/health")

@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule - MedFlowAI{% endblock %}
+
+{% block content %}
+<div x-data="{
+    chatHistory: [],
+    detectedKeywords: [],
+    recommendedClinics: [],
+    allClinics: [],
+    showAll: false,
+    showConsentModal: true,
+    isAnalyzing: false,
+    consentGiven: null,
+    clinicsReady: false,
+
+    init() {
+        // Load chat history from localStorage
+        const stored = localStorage.getItem('chatHistory');
+        this.chatHistory = stored ? JSON.parse(stored) : [];
+
+        // Initialize dummy clinic data
+        this.allClinics = this.getDummyClinics();
+    },
+
+    getDummyClinics() {
+        return [
+            // Neurologists (for headaches)
+            {
+                id: 1,
+                name: 'Dr. Smith Neurology Center',
+                category: 'Neurologist',
+                rating: 4.9,
+                reviews: 245,
+                distance: '2.0 km',
+                address: '123 Main St, Downtown',
+                specialties: ['headache', 'migraine', 'head', 'brain', 'neurological']
+            },
+            {
+                id: 2,
+                name: 'City Headache & Migraine Clinic',
+                category: 'Headache Specialist',
+                rating: 4.7,
+                reviews: 180,
+                distance: '3.5 km',
+                address: '456 Oak Ave, Midtown',
+                specialties: ['headache', 'migraine', 'head', 'pain']
+            },
+            {
+                id: 3,
+                name: 'NeuroHealth Medical Group',
+                category: 'Neurologist',
+                rating: 4.8,
+                reviews: 210,
+                distance: '4.2 km',
+                address: '789 Elm St, Uptown',
+                specialties: ['headache', 'neurological', 'brain']
+            },
+
+            // Sleep specialists
+            {
+                id: 4,
+                name: 'Sleep & Wellness Clinic',
+                category: 'Sleep Medicine',
+                rating: 4.7,
+                reviews: 165,
+                distance: '2.8 km',
+                address: '321 Pine Rd, Eastside',
+                specialties: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest']
+            },
+            {
+                id: 5,
+                name: 'Rest Well Sleep Center',
+                category: 'Sleep Specialist',
+                rating: 4.6,
+                reviews: 142,
+                distance: '5.1 km',
+                address: '654 Maple Dr, Westside',
+                specialties: ['sleep', 'insomnia', 'tired', 'apnea']
+            },
+
+            // Cardiologists
+            {
+                id: 6,
+                name: 'HeartCare Medical Center',
+                category: 'Cardiologist',
+                rating: 4.9,
+                reviews: 298,
+                distance: '1.5 km',
+                address: '987 Cedar Ln, Central',
+                specialties: ['heart', 'cardiac', 'chest', 'cardiovascular']
+            },
+            {
+                id: 7,
+                name: 'Dr. Johnson Cardiology',
+                category: 'Cardiologist',
+                rating: 4.8,
+                reviews: 220,
+                distance: '3.0 km',
+                address: '147 Birch St, Northside',
+                specialties: ['heart', 'cardiac', 'blood pressure', 'cardiovascular']
+            },
+
+            // General practitioners
+            {
+                id: 8,
+                name: 'Family Health Clinic',
+                category: 'General Practitioner',
+                rating: 4.5,
+                reviews: 310,
+                distance: '1.2 km',
+                address: '258 Walnut Ave, Downtown',
+                specialties: ['general', 'primary care', 'family']
+            },
+            {
+                id: 9,
+                name: 'Metro Medical Associates',
+                category: 'General Practitioner',
+                rating: 4.6,
+                reviews: 275,
+                distance: '2.5 km',
+                address: '369 Spruce Blvd, Southside',
+                specialties: ['general', 'primary care', 'health']
+            },
+
+            // Orthopedists
+            {
+                id: 10,
+                name: 'Sports & Joint Clinic',
+                category: 'Orthopedist',
+                rating: 4.7,
+                reviews: 188,
+                distance: '4.0 km',
+                address: '741 Ash Ct, Athletic District',
+                specialties: ['joint', 'pain', 'sports', 'injury', 'bone']
+            },
+
+            // Dermatologists
+            {
+                id: 11,
+                name: 'Skin Health Center',
+                category: 'Dermatologist',
+                rating: 4.6,
+                reviews: 156,
+                distance: '3.2 km',
+                address: '852 Willow Way, Fashion District',
+                specialties: ['skin', 'rash', 'acne', 'dermatology']
+            },
+
+            // Gastroenterologists
+            {
+                id: 12,
+                name: 'Digestive Health Clinic',
+                category: 'Gastroenterologist',
+                rating: 4.8,
+                reviews: 192,
+                distance: '2.7 km',
+                address: '963 Cherry Pl, Medical District',
+                specialties: ['stomach', 'digestive', 'gastro', 'gut', 'abdominal']
+            },
+
+            // ENT (Ear, Nose, Throat)
+            {
+                id: 13,
+                name: 'Ear Nose Throat Associates',
+                category: 'ENT Specialist',
+                rating: 4.7,
+                reviews: 174,
+                distance: '3.8 km',
+                address: '159 Poplar Rd, Hospital District',
+                specialties: ['throat', 'ear', 'nose', 'sinus', 'ent']
+            },
+
+            // Psychiatrists / Mental Health
+            {
+                id: 14,
+                name: 'Mind & Wellness Center',
+                category: 'Psychiatrist',
+                rating: 4.8,
+                reviews: 203,
+                distance: '2.3 km',
+                address: '357 Magnolia Dr, Wellness District',
+                specialties: ['mental', 'stress', 'anxiety', 'depression', 'mood']
+            },
+
+            // Endocrinologists
+            {
+                id: 15,
+                name: 'Hormone & Diabetes Clinic',
+                category: 'Endocrinologist',
+                rating: 4.7,
+                reviews: 167,
+                distance: '4.5 km',
+                address: '486 Sycamore St, Research Park',
+                specialties: ['diabetes', 'hormone', 'thyroid', 'endocrine', 'metabolic']
+            }
+        ];
+    },
+
+    handleConsent(consent) {
+        this.consentGiven = consent;
+        this.showConsentModal = false;
+
+        if (consent) {
+            // Show spinner and analyze
+            this.isAnalyzing = true;
+            setTimeout(() => {
+                this.analyzeChatAndMatch();
+                this.isAnalyzing = false;
+                this.clinicsReady = true;
+            }, 2000); // 2 second delay to simulate AI processing
+        } else {
+            // Just show all clinics sorted by rating
+            this.recommendedClinics = this.allClinics
+                .slice()
+                .sort((a, b) => b.rating - a.rating);
+            this.clinicsReady = true;
+        }
+    },
+
+    analyzeChatAndMatch() {
+        // Extract text from chat history
+        const chatText = this.chatHistory
+            .map(msg => msg.content)
+            .join(' ')
+            .toLowerCase();
+
+        // Detect keywords
+        const keywords = new Set();
+
+        // Check for each specialty
+        this.allClinics.forEach(clinic => {
+            clinic.specialties.forEach(specialty => {
+                if (chatText.includes(specialty)) {
+                    keywords.add(specialty);
+                }
+            });
+        });
+
+        this.detectedKeywords = Array.from(keywords);
+
+        // Match and sort clinics
+        if (this.detectedKeywords.length > 0) {
+            // Score each clinic based on keyword matches
+            const scored = this.allClinics.map(clinic => {
+                let score = 0;
+                this.detectedKeywords.forEach(keyword => {
+                    if (clinic.specialties.includes(keyword)) {
+                        score += 10;
+                    }
+                });
+                // Add rating bonus
+                score += clinic.rating * 2;
+                return { ...clinic, matchScore: score };
+            });
+
+            // Sort by score, then rating
+            this.recommendedClinics = scored
+                .filter(c => c.matchScore > 0)
+                .sort((a, b) => {
+                    if (b.matchScore !== a.matchScore) {
+                        return b.matchScore - a.matchScore;
+                    }
+                    return b.rating - a.rating;
+                });
+        } else {
+            // No keywords detected, show top rated
+            this.recommendedClinics = this.allClinics
+                .slice()
+                .sort((a, b) => b.rating - a.rating);
+        }
+    },
+
+    renderStars(rating) {
+        const fullStars = Math.floor(rating);
+        const hasHalf = rating % 1 >= 0.5;
+        let stars = '';
+        for (let i = 0; i < fullStars; i++) {
+            stars += '⭐';
+        }
+        if (hasHalf) {
+            stars += '⭐';
+        }
+        return stars;
+    }
+}">
+
+    <!-- Header -->
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Schedule Appointment</h1>
+        <p class="text-gray-600 text-sm mt-1">Find the right specialist for you</p>
+    </div>
+
+    <!-- Consent Modal -->
+    <div x-show="showConsentModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+             @click.stop>
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Use Your Chat History?</h3>
+                <p class="text-sm text-gray-600">
+                    Do you agree to let us use your chat history to find the best specialists matched to your health concerns?
+                </p>
+            </div>
+
+            <div class="space-y-3">
+                <button @click="handleConsent(true)"
+                        class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition">
+                    Yes, Use My Chat History
+                </button>
+                <button @click="handleConsent(false)"
+                        class="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    No, Show All Clinics
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div x-show="isAnalyzing"
+         x-transition
+         class="flex flex-col items-center justify-center py-20">
+        <svg class="animate-spin h-12 w-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600 font-medium">Analyzing your health data...</p>
+        <p class="text-sm text-gray-500 mt-2">Finding the best specialists for you</p>
+    </div>
+
+    <!-- Clinics List -->
+    <div x-show="clinicsReady && !isAnalyzing" x-transition class="space-y-6">
+
+        <!-- Context Banner (shown only if consent was given and keywords detected) -->
+        <div x-show="consentGiven && detectedKeywords.length > 0"
+             class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <h3 class="text-lg font-bold mb-2">Based on your chat history</h3>
+            <p class="text-sm text-blue-100 mb-3">
+                We detected you mentioned:
+                <span class="font-semibold" x-text="detectedKeywords.join(', ')"></span>
+            </p>
+            <p class="text-sm">Here are the most suitable specialists for you:</p>
+        </div>
+
+        <!-- Clinics Header -->
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-900">
+                <span x-show="consentGiven && detectedKeywords.length > 0">Recommended Specialists</span>
+                <span x-show="!consentGiven || detectedKeywords.length === 0">Available Clinics</span>
+            </h2>
+            <button @click="showAll = !showAll"
+                    class="text-blue-600 text-sm font-medium hover:text-blue-700">
+                <span x-show="!showAll">Show All</span>
+                <span x-show="showAll">Show Less</span>
+            </button>
+        </div>
+
+        <!-- Clinic Cards -->
+        <template x-for="clinic in (showAll ? allClinics : recommendedClinics.slice(0, 5))" :key="clinic.id">
+            <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.name"></h3>
+                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.category"></p>
+
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span x-html="renderStars(clinic.rating)"></span>
+                            <span class="text-sm font-semibold text-gray-700" x-text="clinic.rating"></span>
+                            <span class="text-xs text-gray-500">(<span x-text="clinic.reviews"></span> reviews)</span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 text-xs text-gray-600">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span x-text="clinic.distance"></span>
+                            </div>
+                            <span x-text="clinic.address" class="truncate"></span>
+                        </div>
+                    </div>
+
+                    <div class="text-4xl ml-3">🏥</div>
+                </div>
+
+                <button @click="alert('Booking feature coming soon!')"
+                        class="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition flex items-center justify-center space-x-2">
+                    <span>Book Appointment</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
+</div>
+{% endblock %}

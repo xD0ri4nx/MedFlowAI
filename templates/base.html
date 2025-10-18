@@ -8,13 +8,17 @@
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
-    <!-- Tailwind CSS for styling -->
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Custom styles -->
     <style>
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding-bottom: 80px; /* Space for bottom nav */
         }
         .htmx-indicator {
             display: none;
@@ -25,39 +29,100 @@
         .htmx-request.htmx-indicator {
             display: inline;
         }
+
+        /* Smooth transitions */
+        .tab-content {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom nav active state */
+        .nav-btn.active {
+            color: #3B82F6;
+        }
+
+        .nav-btn svg {
+            transition: transform 0.2s;
+        }
+
+        .nav-btn.active svg {
+            transform: scale(1.1);
+        }
     </style>
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-blue-600">🏥 MedFlowAI</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-                    <a href="/health" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Health Check</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+<body class="bg-gray-50 min-h-screen" x-data="{
+    currentPage: window.location.pathname.replace('/', '') || 'home',
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9'
+}" x-init="
+    // Initialize chat history if not exists
+    if (!localStorage.getItem('chatHistory')) {
+        localStorage.setItem('chatHistory', JSON.stringify([
+            { role: 'user', content: 'I have been experiencing frequent headaches for the past 3 days', timestamp: Date.now() - 3600000 },
+            { role: 'assistant', content: 'I understand you\'re dealing with headaches. Can you tell me more about them? Are they constant or do they come and go? Have you noticed any triggers?', timestamp: Date.now() - 3500000 }
+        ]));
+    }
+">
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-md mx-auto px-4 py-6">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <p class="text-center text-gray-500 text-sm">
-                © 2025 MedFlowAI - Medical AI Flow Management System
-            </p>
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div class="max-w-md mx-auto px-4">
+            <div class="flex justify-around items-center h-16">
+                <!-- Home -->
+                <a href="/home"
+                   class="nav-btn flex flex-col items-center justify-center flex-1 py-2 transition-colors"
+                   :class="currentPage === 'home' ? 'active text-blue-600' : 'text-gray-500'"
+                   @click="currentPage = 'home'">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    <span class="text-xs font-medium">Home</span>
+                </a>
+
+                <!-- Chat -->
+                <a href="/chat"
+                   class="nav-btn flex flex-col items-center justify-center flex-1 py-2 transition-colors"
+                   :class="currentPage === 'chat' ? 'active text-blue-600' : 'text-gray-500'"
+                   @click="currentPage = 'chat'">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <span class="text-xs font-medium">Chat</span>
+                </a>
+
+                <!-- Add Data -->
+                <a href="/add-data"
+                   class="nav-btn flex flex-col items-center justify-center flex-1 py-2 transition-colors"
+                   :class="currentPage === 'add-data' ? 'active text-blue-600' : 'text-gray-500'"
+                   @click="currentPage = 'add-data'">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span class="text-xs font-medium">Add</span>
+                </a>
+
+                <!-- Schedule -->
+                <a href="/schedule"
+                   class="nav-btn flex flex-col items-center justify-center flex-1 py-2 transition-colors"
+                   :class="currentPage === 'schedule' ? 'active text-blue-600' : 'text-gray-500'"
+                   @click="currentPage = 'schedule'">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-xs font-medium">Schedule</span>
+                </a>
+            </div>
         </div>
-    </footer>
+    </nav>
 
     {% block extra_scripts %}{% endblock %}
 </body>
