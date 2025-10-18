@@ -17,261 +17,62 @@
     emailPreview: '',
     selectedClinic: null,
     isGeneratingEmail: false,
+    patientProfile: null,
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
 
-    init() {
+    async init() {
         // Load chat history from localStorage
         const stored = localStorage.getItem('chatHistory');
         this.chatHistory = stored ? JSON.parse(stored) : [];
 
-        // Initialize dummy clinic data
-        this.allClinics = this.getDummyClinics();
-    },
-
-    getDummyClinics() {
-        return [
-            // Neurologists (for headaches)
-            {
-                id: 1,
-                name: 'Dr. Smith Neurology Center',
-                category: 'Neurologist',
-                rating: 4.9,
-                reviews: 245,
-                distance: '2.0 km',
-                address: '123 Main St, Downtown',
-                specialties: ['headache', 'migraine', 'head', 'brain', 'neurological']
-            },
-            {
-                id: 2,
-                name: 'City Headache & Migraine Clinic',
-                category: 'Headache Specialist',
-                rating: 4.7,
-                reviews: 180,
-                distance: '3.5 km',
-                address: '456 Oak Ave, Midtown',
-                specialties: ['headache', 'migraine', 'head', 'pain']
-            },
-            {
-                id: 3,
-                name: 'NeuroHealth Medical Group',
-                category: 'Neurologist',
-                rating: 4.8,
-                reviews: 210,
-                distance: '4.2 km',
-                address: '789 Elm St, Uptown',
-                specialties: ['headache', 'neurological', 'brain']
-            },
-
-            // Sleep specialists
-            {
-                id: 4,
-                name: 'Sleep & Wellness Clinic',
-                category: 'Sleep Medicine',
-                rating: 4.7,
-                reviews: 165,
-                distance: '2.8 km',
-                address: '321 Pine Rd, Eastside',
-                specialties: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest']
-            },
-            {
-                id: 5,
-                name: 'Rest Well Sleep Center',
-                category: 'Sleep Specialist',
-                rating: 4.6,
-                reviews: 142,
-                distance: '5.1 km',
-                address: '654 Maple Dr, Westside',
-                specialties: ['sleep', 'insomnia', 'tired', 'apnea']
-            },
-
-            // Cardiologists
-            {
-                id: 6,
-                name: 'HeartCare Medical Center',
-                category: 'Cardiologist',
-                rating: 4.9,
-                reviews: 298,
-                distance: '1.5 km',
-                address: '987 Cedar Ln, Central',
-                specialties: ['heart', 'cardiac', 'chest', 'cardiovascular']
-            },
-            {
-                id: 7,
-                name: 'Dr. Johnson Cardiology',
-                category: 'Cardiologist',
-                rating: 4.8,
-                reviews: 220,
-                distance: '3.0 km',
-                address: '147 Birch St, Northside',
-                specialties: ['heart', 'cardiac', 'blood pressure', 'cardiovascular']
-            },
-
-            // General practitioners
-            {
-                id: 8,
-                name: 'Family Health Clinic',
-                category: 'General Practitioner',
-                rating: 4.5,
-                reviews: 310,
-                distance: '1.2 km',
-                address: '258 Walnut Ave, Downtown',
-                specialties: ['general', 'primary care', 'family']
-            },
-            {
-                id: 9,
-                name: 'Metro Medical Associates',
-                category: 'General Practitioner',
-                rating: 4.6,
-                reviews: 275,
-                distance: '2.5 km',
-                address: '369 Spruce Blvd, Southside',
-                specialties: ['general', 'primary care', 'health']
-            },
-
-            // Orthopedists
-            {
-                id: 10,
-                name: 'Sports & Joint Clinic',
-                category: 'Orthopedist',
-                rating: 4.7,
-                reviews: 188,
-                distance: '4.0 km',
-                address: '741 Ash Ct, Athletic District',
-                specialties: ['joint', 'pain', 'sports', 'injury', 'bone']
-            },
-
-            // Dermatologists
-            {
-                id: 11,
-                name: 'Skin Health Center',
-                category: 'Dermatologist',
-                rating: 4.6,
-                reviews: 156,
-                distance: '3.2 km',
-                address: '852 Willow Way, Fashion District',
-                specialties: ['skin', 'rash', 'acne', 'dermatology']
-            },
-
-            // Gastroenterologists
-            {
-                id: 12,
-                name: 'Digestive Health Clinic',
-                category: 'Gastroenterologist',
-                rating: 4.8,
-                reviews: 192,
-                distance: '2.7 km',
-                address: '963 Cherry Pl, Medical District',
-                specialties: ['stomach', 'digestive', 'gastro', 'gut', 'abdominal']
-            },
-
-            // ENT (Ear, Nose, Throat)
-            {
-                id: 13,
-                name: 'Ear Nose Throat Associates',
-                category: 'ENT Specialist',
-                rating: 4.7,
-                reviews: 174,
-                distance: '3.8 km',
-                address: '159 Poplar Rd, Hospital District',
-                specialties: ['throat', 'ear', 'nose', 'sinus', 'ent']
-            },
-
-            // Psychiatrists / Mental Health
-            {
-                id: 14,
-                name: 'Mind & Wellness Center',
-                category: 'Psychiatrist',
-                rating: 4.8,
-                reviews: 203,
-                distance: '2.3 km',
-                address: '357 Magnolia Dr, Wellness District',
-                specialties: ['mental', 'stress', 'anxiety', 'depression', 'mood']
-            },
-
-            // Endocrinologists
-            {
-                id: 15,
-                name: 'Hormone & Diabetes Clinic',
-                category: 'Endocrinologist',
-                rating: 4.7,
-                reviews: 167,
-                distance: '4.5 km',
-                address: '486 Sycamore St, Research Park',
-                specialties: ['diabetes', 'hormone', 'thyroid', 'endocrine', 'metabolic']
+        // Fetch real clinics from database
+        try {
+            const response = await fetch('/api/v1/cabinete');
+            const data = await response.json();
+            if (data.success) {
+                this.allClinics = data.cabinete || [];
             }
-        ];
+        } catch (error) {
+            console.error('Error loading clinics:', error);
+            this.allClinics = [];
+        }
     },
 
-    handleConsent(consent) {
+    async handleConsent(consent) {
         this.consentGiven = consent;
         this.showConsentModal = false;
 
         if (consent) {
-            // Show spinner and analyze
+            // Call LLM to analyze and recommend clinics
             this.isAnalyzing = true;
-            setTimeout(() => {
-                this.analyzeChatAndMatch();
+            try {
+                const response = await fetch('/api/v1/recommend_clinic', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: this.userId,
+                        chat_history: this.chatHistory
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to get recommendations');
+
+                const data = await response.json();
+                this.patientProfile = data.profile;
+                this.recommendedClinics = data.recommended_clinics || this.allClinics;
                 this.isAnalyzing = false;
                 this.clinicsReady = true;
-            }, 2000); // 2 second delay to simulate AI processing
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                // Fallback to showing all clinics
+                this.recommendedClinics = this.allClinics;
+                this.isAnalyzing = false;
+                this.clinicsReady = true;
+            }
         } else {
-            // Just show all clinics sorted by rating
-            this.recommendedClinics = this.allClinics
-                .slice()
-                .sort((a, b) => b.rating - a.rating);
+            // Just show all clinics without recommendations
+            this.recommendedClinics = this.allClinics;
             this.clinicsReady = true;
-        }
-    },
-
-    analyzeChatAndMatch() {
-        // Extract text from chat history
-        const chatText = this.chatHistory
-            .map(msg => msg.content)
-            .join(' ')
-            .toLowerCase();
-
-        // Detect keywords
-        const keywords = new Set();
-
-        // Check for each specialty
-        this.allClinics.forEach(clinic => {
-            clinic.specialties.forEach(specialty => {
-                if (chatText.includes(specialty)) {
-                    keywords.add(specialty);
-                }
-            });
-        });
-
-        this.detectedKeywords = Array.from(keywords);
-
-        // Match and sort clinics
-        if (this.detectedKeywords.length > 0) {
-            // Score each clinic based on keyword matches
-            const scored = this.allClinics.map(clinic => {
-                let score = 0;
-                this.detectedKeywords.forEach(keyword => {
-                    if (clinic.specialties.includes(keyword)) {
-                        score += 10;
-                    }
-                });
-                // Add rating bonus
-                score += clinic.rating * 2;
-                return { ...clinic, matchScore: score };
-            });
-
-            // Sort by score, then rating
-            this.recommendedClinics = scored
-                .filter(c => c.matchScore > 0)
-                .sort((a, b) => {
-                    if (b.matchScore !== a.matchScore) {
-                        return b.matchScore - a.matchScore;
-                    }
-                    return b.rating - a.rating;
-                });
-        } else {
-            // No keywords detected, show top rated
-            this.recommendedClinics = this.allClinics
-                .slice()
-                .sort((a, b) => b.rating - a.rating);
         }
     },
 
@@ -298,6 +99,17 @@
             const healthResponse = await fetch('/api/v1/generate_alert?user_id=' + this.userId);
             if (!healthResponse.ok) throw new Error('Failed to fetch health data');
             const healthData = await healthResponse.json();
+
+            // Step 1.5: Get patient profile if not already loaded
+            if (!this.patientProfile) {
+                const summary = healthData.summary || {};
+                const profile = summary.profile || {};
+                this.patientProfile = {
+                    full_name: profile.full_name || 'Patient',
+                    email: profile.email || 'patient@example.com',
+                    phone: profile.phone || '+40 XXX XXX XXX'
+                };
+            }
 
             // Step 2: Fetch email template
             const templateResponse = await fetch('/templates/appointment_email.html');
@@ -354,11 +166,12 @@
                 chatHistoryHtml = '<p>No chat history available</p>';
             }
 
-            // Step 7: Replace all placeholders with actual data
-            emailTemplate = emailTemplate.replace(/\{\{CLINIC_NAME\}\}/g, clinic.name);
-            emailTemplate = emailTemplate.replace(/\{\{PATIENT_NAME\}\}/g, 'Mark Johnson');
-            emailTemplate = emailTemplate.replace(/\{\{PATIENT_EMAIL\}\}/g, 'mark@example.com');
-            emailTemplate = emailTemplate.replace(/\{\{PATIENT_PHONE\}\}/g, '+40732345678');
+            // Step 7: Replace all placeholders with actual data from patient profile
+            const clinicName = clinic.nume || clinic.name || 'Clinic';
+            emailTemplate = emailTemplate.replace(/\{\{CLINIC_NAME\}\}/g, clinicName);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_NAME\}\}/g, this.patientProfile.full_name);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_EMAIL\}\}/g, this.patientProfile.email);
+            emailTemplate = emailTemplate.replace(/\{\{PATIENT_PHONE\}\}/g, this.patientProfile.phone);
             emailTemplate = emailTemplate.replace(/\{\{HEALTH_SCORE\}\}/g, healthScore);
             emailTemplate = emailTemplate.replace(/\{\{HEALTH_DATA_TABLE\}\}/g, healthTableHtml);
             emailTemplate = emailTemplate.replace(/\{\{LLM_FEEDBACK\}\}/g, llmFeedback);
@@ -460,24 +273,29 @@
             <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex-1">
-                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.name"></h3>
-                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.category"></p>
+                        <h3 class="font-bold text-gray-900 text-lg mb-1" x-text="clinic.nume || clinic.name"></h3>
+                        <p class="text-sm text-gray-600 mb-2" x-text="clinic.categorie || clinic.category || 'Medical Clinic'"></p>
 
-                        <div class="flex items-center space-x-2 mb-2">
+                        <div x-show="clinic.rating" class="flex items-center space-x-2 mb-2">
                             <span x-html="renderStars(clinic.rating)"></span>
                             <span class="text-sm font-semibold text-gray-700" x-text="clinic.rating"></span>
                             <span class="text-xs text-gray-500">(<span x-text="clinic.reviews"></span> reviews)</span>
                         </div>
 
+                        <div x-show="clinic.recommendation_score" class="mb-2">
+                            <span class="text-xs font-semibold text-blue-600">Match Score: <span x-text="clinic.recommendation_score"></span>/100</span>
+                            <p class="text-xs text-gray-600 mt-1" x-text="clinic.recommendation_reasoning"></p>
+                        </div>
+
                         <div class="flex items-center space-x-4 text-xs text-gray-600">
-                            <div class="flex items-center">
+                            <div x-show="clinic.distance" class="flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
                                 <span x-text="clinic.distance"></span>
                             </div>
-                            <span x-text="clinic.address" class="truncate"></span>
+                            <span x-show="clinic.address || clinic.adresa" x-text="clinic.address || clinic.adresa" class="truncate"></span>
                         </div>
                     </div>
 
@@ -525,7 +343,7 @@
                 <div class="p-6">
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
                         <p class="text-sm text-gray-600">
-                            <strong>To:</strong> <span x-text="selectedClinic?.name"></span><br>
+                            <strong>To:</strong> <span x-text="selectedClinic?.nume || selectedClinic?.name"></span><br>
                             <strong>Subject:</strong> Urgent Appointment Request - Patient Health Consultation
                         </p>
                     </div>
