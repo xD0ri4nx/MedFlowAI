@@ -7,17 +7,39 @@
     messages: [],
     input: '',
     isLoading: false,
+    showClearSuccess: false,
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
 
     init() {
         // Load chat history from localStorage
         const stored = localStorage.getItem('chatHistory');
-        this.messages = stored ? JSON.parse(stored) : [
-            { role: 'assistant', content: 'Hello! I\'m your health assistant. How can I help you today?', timestamp: Date.now() }
-        ];
+        if (stored) {
+            try {
+                this.messages = JSON.parse(stored);
+                // If stored history is empty or invalid, start fresh
+                if (!Array.isArray(this.messages) || this.messages.length === 0) {
+                    this.startFreshChat();
+                }
+            } catch (e) {
+                // If JSON parsing fails, start fresh
+                console.error('Failed to parse chat history:', e);
+                this.startFreshChat();
+            }
+        } else {
+            // No history exists, start fresh
+            this.startFreshChat();
+        }
         this.$nextTick(() => this.scrollToBottom());
     },
 
-    sendMessage() {
+    startFreshChat() {
+        this.messages = [
+            { role: 'assistant', content: 'Hello! I\'m your health assistant. How can I help you today?', timestamp: Date.now() }
+        ];
+        this.saveMessages();
+    },
+
+    async sendMessage() {
         if (!this.input.trim()) return;
 
         // Add user message
@@ -27,47 +49,55 @@
             timestamp: Date.now()
         };
         this.messages.push(userMessage);
+        const question = this.input;
         this.input = '';
 
         // Save to localStorage
         this.saveMessages();
         this.scrollToBottom();
 
-        // Simulate AI response
+        // Call /ask endpoint
         this.isLoading = true;
-        setTimeout(() => {
-            const aiResponse = this.generateMockResponse(userMessage.content);
+        try {
+            const formData = new FormData();
+            formData.append('user_id', this.userId);
+            formData.append('question', question);
+
+            const response = await fetch('/ask', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get response from server');
+            }
+
+            const data = await response.json();
+
+            // Add AI response
             this.messages.push({
                 role: 'assistant',
-                content: aiResponse,
+                content: data.generated_feedback,
                 timestamp: Date.now()
             });
+
             this.isLoading = false;
             this.saveMessages();
             this.scrollToBottom();
-        }, 1000 + Math.random() * 1000);
-    },
 
-    generateMockResponse(userInput) {
-        const input = userInput.toLowerCase();
+        } catch (error) {
+            console.error('Error calling /ask endpoint:', error);
 
-        if (input.includes('headache') || input.includes('head')) {
-            return 'I understand you\'re experiencing headaches. This could be related to several factors like stress, sleep, dehydration, or other health conditions. Have you noticed any triggers? I recommend scheduling an appointment with a neurologist for proper evaluation. Would you like me to help you find a specialist?';
-        }
-        else if (input.includes('sleep') || input.includes('tired') || input.includes('fatigue')) {
-            return 'Sleep issues can significantly impact your health. Based on your recent logs, you\'ve been sleeping about 7 hours which is good. However, if you\'re feeling tired, we should look into sleep quality. Try maintaining a consistent sleep schedule and avoiding screens before bed. Would you like to log your sleep patterns?';
-        }
-        else if (input.includes('eat') || input.includes('food') || input.includes('meal')) {
-            return 'Nutrition is crucial for your health! I can help you track your meals and calories. Would you like to add what you ate today? Just describe your meal in natural language and I\'ll help you log it.';
-        }
-        else if (input.includes('exercise') || input.includes('workout') || input.includes('sport')) {
-            return 'Great that you\'re thinking about physical activity! Regular exercise improves both physical and mental health. What type of activity are you interested in, or would you like to log a workout you\'ve completed?';
-        }
-        else if (input.includes('schedule') || input.includes('appointment') || input.includes('doctor')) {
-            return 'I can help you schedule an appointment! Based on your health concerns, I\'ll recommend the most suitable specialists. Would you like to see available doctors and clinics?';
-        }
-        else {
-            return 'I\'m here to help with your health concerns. You can ask me about symptoms, log your health data (meals, sleep, vitals, exercise), or schedule appointments with specialists. What would you like to do?';
+            // Add error message to chat
+            this.messages.push({
+                role: 'assistant',
+                content: 'Sorry, I encountered an error processing your request. Please try again.',
+                timestamp: Date.now()
+            });
+
+            this.isLoading = false;
+            this.saveMessages();
+            this.scrollToBottom();
         }
     },
 
@@ -86,10 +116,20 @@
 
     clearChat() {
         if (confirm('Are you sure you want to clear the chat history?')) {
-            this.messages = [
-                { role: 'assistant', content: 'Hello! I\'m your health assistant. How can I help you today?', timestamp: Date.now() }
-            ];
-            this.saveMessages();
+            // Clear messages array
+            this.messages = [];
+
+            // Remove from localStorage completely
+            localStorage.removeItem('chatHistory');
+
+            // Start fresh with welcome message
+            this.startFreshChat();
+
+            // Show success feedback
+            this.showClearSuccess = true;
+            setTimeout(() => {
+                this.showClearSuccess = false;
+            }, 3000);
         }
     },
 
@@ -98,6 +138,23 @@
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 }">
+
+    <!-- Success Toast -->
+    <div x-show="showClearSuccess"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span>Chat history cleared successfully!</span>
+        </div>
+    </div>
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-3">
