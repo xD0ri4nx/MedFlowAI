@@ -53,11 +53,8 @@
             this.feedback = data.feedback;
             this.briefSummaries = data.brief_summaries || {};
             
-            // Calculate score based on data availability
-            const totalRecords = data.summary?.total_records || 0;
-            if (totalRecords >= 4) this.score = 85;
-            else if (totalRecords >= 2) this.score = 65;
-            else this.score = 30;
+            // Use health score from API
+            this.score = data.health_score || 50;
             
             this.color = this.getColorForScore(this.score);
             this.status = this.getStatusForScore(this.score);
@@ -121,9 +118,8 @@
                 <!-- Background bar -->
                 <div class="w-full h-8 bg-gray-200 rounded-full overflow-hidden">
                     <!-- Progress fill -->
-                    <div class="h-full rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out"
                          :style="`width: ${score}%; background-color: ${color}`">
-                        <span class="text-white text-sm font-bold" x-text="score + '%'"></span>
                     </div>
                 </div>
             </div>
@@ -180,12 +176,12 @@
             <!-- Vitals -->
             <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                         </svg>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <p class="text-sm font-semibold text-gray-700">Vitals</p>
                         <p class="text-xs text-gray-500" x-text="getSummaryText('vitale')"></p>
                     </div>

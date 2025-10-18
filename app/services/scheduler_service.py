@@ -102,6 +102,30 @@ IMPORTANT: Formatează răspunsul folosind Markdown:
 
 Răspunde în limba română, foarte concis."""
 
+        score_prompt = f"""Bazat pe datele medicale de mai sus pentru {user_name}, evaluează starea de sănătate generală cu un scor între 0-100:
+
+FII CRITIC ȘI REALIST! NU da scoruri mari dacă datele nu sunt complete sau optime.
+
+- 0-20: Critic (lipsesc majoritatea datelor sau valori foarte anormale)
+- 21-40: Preocupant (date incomplete, multiple probleme)
+- 41-60: Mediu (date parțiale, valori suboptime, necesită îmbunătățiri)
+- 61-75: Acceptabil (date relativ complete, dar cu lacune)
+- 76-85: Bun (date complete, majoritatea valorilor în limite normale)
+- 86-95: Foarte bun (date complete, valori optime, stil de viață sănătos)
+- 96-100: Excelent (date perfecte, toate categoriile cu valori ideale)
+
+CRITERII STRICTE:
+- Lipsește o categorie întreagă (consum/somn/vitale/sport)? Scor maxim 60
+- Somn sub 6h sau peste 10h? Penalizare -15 puncte
+- Vitale anormale (tensiune >140/90 sau <100/60, puls >100 sau <50)? Penalizare -20 puncte
+- Fără activitate fizică? Penalizare -15 puncte
+- Hidratare sub 1.5L? Penalizare -10 puncte
+- Mai puțin de 2 mese pe zi? Penalizare -10 puncte
+
+Începe cu 50 puncte de bază și ajustează în sus/jos bazat pe calitatea datelor.
+
+Răspunde DOAR cu numărul (de ex: 45). Nimic altceva!"""
+
         system_message = """Ești un asistent medical AI specializat în analiza datelor de sănătate. 
 Răspunzi în limba română EXTREM DE CONCIS - maximum 2-3 fraze în total.
 Folosește Markdown pentru formatare (bold și bullet points), fără titluri."""
@@ -114,13 +138,36 @@ Folosește Markdown pentru formatare (bold și bullet points), fără titluri.""
             max_tokens=800
         )
         
-        logger.info(f"Generated alert for user {user_id}")
+        # Get health score
+        health_score = get_llm_response(
+            prompt=score_prompt,
+            system_message="Ești un evaluator medical. Răspunde DOAR cu un număr între 0-100.",
+            temperature=0.3,
+            max_tokens=10
+        )
+        
+        # Extract numeric score
+        try:
+            score = int(''.join(filter(str.isdigit, health_score)))
+            score = max(0, min(100, score))  # Clamp between 0-100
+        except:
+            score = 50  # Default fallback
+        
+        # Extract numeric score
+        try:
+            score = int(''.join(filter(str.isdigit, health_score)))
+            score = max(0, min(100, score))  # Clamp between 0-100
+        except:
+            score = 50  # Default fallback
+        
+        logger.info(f"Generated alert for user {user_id} with health score: {score}")
         
         return {
             "user_id": user_id,
             "date": str(target_date),
             "summary": summary,
             "feedback": feedback,
+            "health_score": score,
             "success": True
         }
     
