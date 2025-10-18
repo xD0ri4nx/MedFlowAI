@@ -323,10 +323,6 @@ class SupabaseService:
                         "details": details,
                         "created_at": record.get("created_at")
                     })
-            
-
-            
-
             return summary
         except Exception as e:
             raise Exception(f"Error generating daily summary: {str(e)}")

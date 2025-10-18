@@ -11,15 +11,13 @@ from app.services.supabase_service import supabase_service
 # Request/Response Models
 class AskRequest(BaseModel):
     """Request model for /ask endpoint"""
-    prompt: str = Field(..., description="The main question or prompt to ask the LLM")
-    system_prompt: Optional[str] = Field(None, description="Optional system prompt to set context/behavior")
-    temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="Controls randomness (0.0-2.0)")
-    max_tokens: Optional[int] = Field(None, description="Maximum tokens in the response")
+    user_id: str = Field(..., description="UUID of the user")
+    question: str = Field(..., description="The user's health question or concern")
 
 
 class AskResponse(BaseModel):
     """Response model for /ask endpoint"""
-    result: str = Field(..., description="The LLM's response")
+    result: str = Field(..., description="The LLM's personalized health feedback")
     success: bool = Field(..., description="Whether the request was successful")
 
 
@@ -98,35 +96,84 @@ async def debug_info():
 @app.post("/ask", response_model=AskResponse)
 async def ask_llm(request: AskRequest):
     """
-    Ask the LLM a question with optional system prompt.
+    Ask health-related questions and get personalized feedback based on your health data.
 
-    This endpoint allows you to send a prompt to the OpenAI LLM and receive a response.
-    You can optionally provide a system prompt to set the context or behavior.
+    This endpoint analyzes your health data (consumption, sleep, vitals, sports) and provides
+    personalized feedback based on your specific question or concern.
 
     Args:
         request: AskRequest object containing:
-            - prompt: The question/prompt to ask
-            - system_prompt: Optional system message to set context
-            - temperature: Optional temperature setting (0.0-2.0)
-            - max_tokens: Optional maximum tokens in response
+            - user_id: UUID of the user
+            - question: The user's health question or concern
 
     Returns:
-        AskResponse: Object containing the LLM's response and success status
+        AskResponse: Object containing personalized health feedback and success status
 
     Example:
         POST /ask
         {
-            "prompt": "What is diabetes?",
-            "system_prompt": "You are a medical expert assistant"
+            "user_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+            "question": "De ce mă simt obosit?"
         }
     """
     try:
-        # Call the LLM service
+        # Step 1: Fetch user's health summary (all-time data)
+        summary = supabase_service.get_daily_summary(
+            user_id=request.user_id,
+            target_date=date.today()  # Function gets all-time data regardless of date
+        )
+
+        # Check if user exists
+        if not summary.get("profile"):
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with ID {request.user_id} not found"
+            )
+
+        # Step 2: Build hardcoded system prompt
+        system_message = """Ești un asistent medical AI care oferă feedback personalizat bazat pe datele de sănătate ale utilizatorului.
+Analizezi rezumatul de sănătate al utilizatorului (consum alimentar, somn, semne vitale, activitate fizică) și răspunzi la întrebarea lor cu insight-uri relevante din datele lor. Trebuie sa fi dur si sa oferi raspunsuri scurte si la obiect. Daca nu stii sigur motivul recomanda consultarea unui medic specialist dar cu mentionarea scurta a unor posibile cauze in baza profilului utilizatorului si a datelor disponibile."""
+
+        # Step 3: Format health summary for the prompt
+        user_name = summary.get("profile", {}).get("full_name", "Utilizator")
+
+        # Format each health data section
+        health_summary = f"""PROFIL UTILIZATOR:
+- Nume: {user_name}
+- Data nașterii: {summary.get("profile", {}).get("date_of_birth", "N/A")}
+
+DATE DE SĂNĂTATE:
+
+CONSUM (mese și lichide):
+{_format_data_section(summary.get("consum", []))}
+
+SOMN:
+{_format_data_section(summary.get("somn", []))}
+
+VITALE (tensiune, puls, oxigenare):
+{_format_data_section(summary.get("vitale", []))}
+
+SPORT (activitate fizică):
+{_format_data_section(summary.get("sport", []))}
+
+MEDICAMENTE:
+{_format_data_section(summary.get("medicamente", []))}"""
+
+        # Step 4: Build user prompt combining question + health summary
+        prompt = f"""Întrebarea utilizatorului: {request.question}
+
+{health_summary}
+
+---
+
+Bazându-te pe datele de sănătate de mai sus, oferă un răspuns scurt și personalizat la întrebarea utilizatorului."""
+
+        # Step 5: Call LLM with hardcoded parameters
         result = get_llm_response(
-            prompt=request.prompt,
-            system_message=request.system_prompt,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens
+            prompt=prompt,
+            system_message=system_message,
+            temperature=0.7,
+            max_tokens=500
         )
 
         return AskResponse(
@@ -134,10 +181,12 @@ async def ask_llm(request: AskRequest):
             success=True
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to get LLM response: {str(e)}"
+            detail=f"Failed to get health feedback: {str(e)}"
         )
 
 
