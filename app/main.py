@@ -1,12 +1,20 @@
 """FastAPI Application with all routes"""
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date
+from pathlib import Path
 from config import settings
 from app.services.llm_service import get_llm_response
 from app.services.supabase_service import supabase_service
+
+# Setup templates
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # Request/Response Models
 class AskRequest(BaseModel):
@@ -70,14 +78,10 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {
-        "message": "Welcome to MedFlowAI",
-        "version": "1.0.0",
-        "status": "running"
-    }
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """Root endpoint - serves the main HTML page"""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/health")
@@ -112,7 +116,7 @@ async def debug_info():
 
 
 @app.post("/ask", response_model=AskResponse)
-async def ask_llm(request: AskRequest):
+async def ask_llm(request: Request, user_id: Optional[str] = Form(None), question: Optional[str] = Form(None)):
     """
     Ask health-related questions and get personalized feedback based on your health data.
 
@@ -135,9 +139,29 @@ async def ask_llm(request: AskRequest):
         }
     """
     try:
+        # Parse incoming data - support JSON body or form-encoded (HTMX)
+        body = None
+        try:
+            content_type = request.headers.get('content-type', '')
+            if content_type.startswith('application/json'):
+                body = await request.json()
+            else:
+                # Try form data (htmx submits form-encoded)
+                form = await request.form()
+                body = dict(form)
+        except Exception:
+            # Fallback to FastAPI-extracted form params
+            body = {"user_id": user_id, "question": question}
+
+        # Validate required fields via Pydantic model
+        try:
+            ask_req = AskRequest(**body)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request data: {str(e)}")
+
         # Step 1: Fetch user's health summary (all-time data)
         summary = supabase_service.get_daily_summary(
-            user_id=request.user_id,
+            user_id=ask_req.user_id,
             target_date=date.today()  # Function gets all-time data regardless of date
         )
 
@@ -145,7 +169,7 @@ async def ask_llm(request: AskRequest):
         if not summary.get("profile"):
             raise HTTPException(
                 status_code=404,
-                detail=f"User with ID {request.user_id} not found"
+                detail=f"User with ID {ask_req.user_id} not found"
             )
 
         # Step 2: Build hardcoded system prompt
@@ -178,7 +202,7 @@ MEDICAMENTE:
 {_format_data_section(summary.get("medicamente", []))}"""
 
         # Step 4: Build user prompt combining question + health summary
-        prompt = f"""Întrebarea utilizatorului: {request.question}
+        prompt = f"""Întrebarea utilizatorului: {ask_req.question}
 
 {health_summary}
 
@@ -196,8 +220,8 @@ Bazându-te pe datele de sănătate de mai sus, oferă un răspuns scurt și per
 
         # Step 6: Return full context object for UI
         return AskResponse(
-            user_id=request.user_id,
-            question=request.question,
+            user_id=ask_req.user_id,
+            question=ask_req.question,
             generated_feedback=result,
             summary=summary,
             success=True
@@ -213,7 +237,7 @@ Bazându-te pe datele de sănătate de mai sus, oferă un răspuns scurt și per
 
 
 @app.post("/gen_alert", response_model=GenerateAlertResponse)
-async def generate_alert(request: GenerateAlertRequest):
+async def generate_alert(request: Request, user_id: Optional[str] = Form(None), target_date: Optional[str] = Form(None)):
     """
     Generate health alert and feedback for a user based on their daily health data.
     
@@ -239,10 +263,28 @@ async def generate_alert(request: GenerateAlertRequest):
         }
     """
     try:
+        # Parse incoming data - support JSON body or form-encoded (HTMX)
+        body = None
+        try:
+            content_type = request.headers.get('content-type', '')
+            if content_type.startswith('application/json'):
+                body = await request.json()
+            else:
+                form = await request.form()
+                body = dict(form)
+        except Exception:
+            body = {"user_id": user_id, "target_date": target_date}
+
+        # Validate via Pydantic
+        try:
+            gen_req = GenerateAlertRequest(**body)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request data: {str(e)}")
+
         # Parse target date or use today
-        if request.target_date:
+        if gen_req.target_date:
             try:
-                target_date = date.fromisoformat(request.target_date)
+                target_date = date.fromisoformat(gen_req.target_date)
             except ValueError:
                 raise HTTPException(
                     status_code=400,
@@ -253,7 +295,7 @@ async def generate_alert(request: GenerateAlertRequest):
         
         # Step 1: Get daily summary from Supabase
         summary = supabase_service.get_daily_summary(
-            user_id=request.user_id,
+            user_id=gen_req.user_id,
             target_date=target_date
         )
         
@@ -261,13 +303,13 @@ async def generate_alert(request: GenerateAlertRequest):
         if not summary.get("profile"):
             raise HTTPException(
                 status_code=404,
-                detail=f"User with ID {request.user_id} not found"
+                detail=f"User with ID {gen_req.user_id} not found"
             )
         
         # Check if there's any data for this date
         if summary.get("total_records", 0) == 0:
             return GenerateAlertResponse(
-                user_id=request.user_id,
+                user_id=gen_req.user_id,
                 date=str(target_date),
                 summary=summary,
                 feedback="Nu există date înregistrate pentru această zi. Vă rugăm să adăugați date despre consum, somn, vitale și activitate fizică pentru a primi recomandări personalizate.",
@@ -322,7 +364,7 @@ Răspunzi întotdeauna în limba română, într-un mod profesional dar accesibi
         )
         
         return GenerateAlertResponse(
-            user_id=request.user_id,
+            user_id=gen_req.user_id,
             date=str(target_date),
             summary=summary,
             feedback=feedback,
