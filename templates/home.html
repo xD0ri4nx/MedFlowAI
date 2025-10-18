@@ -31,11 +31,44 @@
 
 {% block content %}
 <div x-data="{
+    userId: '70b8c710-b86e-4307-ab97-fbb95a4c66d9',
     score: 75,
-    status: 'Crushing it!',
+    status: 'Loading...',
     color: '#8B5CF6',
     showFeedback: false,
     feedback: '',
+    summary: null,
+    briefSummaries: {},
+    loading: true,
+    error: null,
+
+    async loadHealthData() {
+        try {
+            this.loading = true;
+            const response = await fetch(`/api/v1/generate_alert?user_id=${this.userId}`);
+            if (!response.ok) throw new Error('Failed to load health data');
+            
+            const data = await response.json();
+            this.summary = data.summary;
+            this.feedback = data.feedback;
+            this.briefSummaries = data.brief_summaries || {};
+            
+            // Use health score from API
+            this.score = data.health_score || 50;
+            
+            this.color = this.getColorForScore(this.score);
+            this.status = this.getStatusForScore(this.score);
+            this.loading = false;
+        } catch (err) {
+            this.error = err.message;
+            this.loading = false;
+            this.status = 'Error loading data';
+        }
+    },
+
+    getSummaryText(category) {
+        return this.briefSummaries[category] || 'No data logged';
+    },
 
     getColorForScore(score) {
         if (score >= 80) return '#10B981'; // green
@@ -49,17 +82,24 @@
         return 'Need some care';
     },
 
-    generateFeedback() {
-        this.showFeedback = true;
-        // Simulate API call
-        setTimeout(() => {
-            this.feedback = `Based on your health data for today, you're doing great! Your sleep quality is good (7 hours), vital signs are within normal range, and you've been staying active. Keep maintaining this healthy routine. Consider increasing your water intake slightly to reach 2L per day for optimal hydration.`;
-        }, 1000);
+    async generateFeedback() {
+        if (this.feedback) {
+            this.showFeedback = true;
+            return;
+        }
+        
+        try {
+            this.showFeedback = true;
+            const response = await fetch(`/api/v1/generate_alert?user_id=${this.userId}`);
+            if (!response.ok) throw new Error('Failed to generate feedback');
+            
+            const data = await response.json();
+            this.feedback = data.feedback;
+        } catch (err) {
+            this.feedback = 'Error: ' + err.message;
+        }
     }
-}" x-init="
-    color = getColorForScore(score);
-    status = getStatusForScore(score);
-" class="space-y-6">
+}" x-init="await loadHealthData()" class="space-y-6">
 
     <!-- Logo and Header -->
     <div class="text-center">
@@ -78,9 +118,8 @@
                 <!-- Background bar -->
                 <div class="w-full h-8 bg-gray-200 rounded-full overflow-hidden">
                     <!-- Progress fill -->
-                    <div class="h-full rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out"
                          :style="`width: ${score}%; background-color: ${color}`">
-                        <span class="text-white text-sm font-bold" x-text="score + '%'"></span>
                     </div>
                 </div>
             </div>
@@ -93,7 +132,15 @@
     <div class="bg-white rounded-2xl shadow-lg p-6">
         <h3 class="text-lg font-bold text-gray-900 mb-4">You've logged today</h3>
 
-        <div class="space-y-3">
+        <div x-show="loading" class="text-center py-4">
+            <svg class="animate-spin h-8 w-8 mx-auto text-purple-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-500 mt-2">Loading your health data...</p>
+        </div>
+
+        <div x-show="!loading" class="space-y-3">
             <!-- Meals -->
             <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                 <div class="flex items-center space-x-3">
@@ -104,7 +151,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Nutrition</p>
-                        <p class="text-xs text-gray-500">2 meals, 46g protein</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('consum')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">🍽️</span>
@@ -120,7 +167,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Sleep</p>
-                        <p class="text-xs text-gray-500">7 hours, good quality</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('somn')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">😴</span>
@@ -129,14 +176,14 @@
             <!-- Vitals -->
             <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                         </svg>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <p class="text-sm font-semibold text-gray-700">Vitals</p>
-                        <p class="text-xs text-gray-500">BP: 120/80, O2: 98%</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('vitale')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">❤️</span>
@@ -152,7 +199,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Activity</p>
-                        <p class="text-xs text-gray-500">30 min running, 300 cal</p>
+                        <p class="text-xs text-gray-500" x-text="getSummaryText('sport')"></p>
                     </div>
                 </div>
                 <span class="text-2xl">🏃</span>
@@ -186,18 +233,14 @@
          x-transition:enter-start="opacity-0 transform scale-95"
          x-transition:enter-end="opacity-100 transform scale-100"
          class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-start space-x-3">
-            <div class="flex-shrink-0">
-                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                    </svg>
-                </div>
+        <div class="text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
             </div>
-            <div class="flex-1">
-                <h4 class="text-lg font-bold text-gray-900 mb-2">AI Health Feedback</h4>
-                <p class="text-gray-700 text-sm leading-relaxed" x-text="feedback"></p>
-            </div>
+            <h4 class="text-lg font-bold text-gray-900 mb-3">AI Health Feedback</h4>
+            <div class="markdown-content text-gray-700 text-sm leading-relaxed text-center" x-html="marked.parse(feedback)"></div>
         </div>
     </div>
 
